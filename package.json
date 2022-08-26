@@ -1,0 +1,36 @@
+{
+  "name": "dao-poc-app",
+  "version": "0.0.1",
+  "description": "Distributed Autonomous Organisation (DAO) Proof of Concept (POC) Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shenshin/dao-poc-application.git"
+  },
+  "keywords": [
+    "rsk",
+    "dao",
+    "web3",
+    "solidity"
+  ],
+  "author": "Aleksandr Shenshin",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/shenshin/dao-poc-application/issues"
+  },
+  "homepage": "https://github.com/shenshin/dao-poc-application#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@openzeppelin/contracts": "^4.7.3",
+    "eslint": "^8.22.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "hardhat": "^2.10.2",
+    "prettier": "^2.7.1"
+  }
+}
