@@ -1,8 +1,8 @@
 /* const {
   time,
   loadFixture,
-} = require('@nomicfoundation/hardhat-network-helpers');
-const { anyValue } = require('@nomicfoundation/hardhat-chai-matchers/withArgs'); */
+} = require('@nomicfoundation/hardhat-network-helpers'); */
+const { anyValue } = require('@nomicfoundation/hardhat-chai-matchers/withArgs');
 const { expect } = require('chai');
 const hre = require('hardhat');
 
@@ -135,13 +135,30 @@ describe('Governance', () => {
   });
 
   describe('Proposal creation', () => {
+    let calldata;
     const proposalDescription = 'Proposal #1: Give a grant to proposer';
 
-    it('someone without voting power should not be able to create a proposal', async () => {
-      const calldata = rifToken.interface.encodeFunctionData('transfer', [
+    before(async () => {
+      // the proposal is:
+      // Lets give all the RIF tokens from the Treasury to the team
+      calldata = rifToken.interface.encodeFunctionData('transfer', [
         team.address,
         treasuryRifAmount,
       ]);
+      // get proposal ID before creating the proposal
+      proposalId = await governor.hashProposal(
+        [rifToken.address],
+        [0],
+        [calldata],
+        hre.ethers.utils.keccak256(
+          hre.ethers.utils.toUtf8Bytes(
+            proposalDescription,
+          ),
+        ),
+      );
+    });
+
+    it('someone without voting power should not be able to create a proposal', async () => {
       const tx = governor
         .connect(deployer).propose(
           [rifToken.address],
@@ -153,35 +170,68 @@ describe('Governance', () => {
     });
 
     it('voter 1 should be able to create a proposal', async () => {
-      // the proposal is:
-      // Lets give all the RIF tokens from the Treasury to the team
-      const calldata = rifToken.interface.encodeFunctionData('transfer', [
-        team.address,
-        treasuryRifAmount,
-      ]);
-      const tx = await governor
+      const startBlock = (await hre.ethers.provider.getBlockNumber()) + 1;
+      const endBlock = startBlock + 3;
+      const tx = governor
         .connect(voter1).propose(
           [rifToken.address], // which address to send tx to on proposal execution
           [0], // amount of Ether / RBTC to supply
           [calldata], // encoded function call
           proposalDescription,
         );
-      const receipt = await tx.wait();
-      const { args } = receipt.events.find(
-        (e) => e.event === 'ProposalCreated',
+      await expect(tx).to.emit(governor, 'ProposalCreated').withArgs(
+        proposalId,
+        voter1.address,
+        [rifToken.address],
+        [0],
+        [''],
+        [calldata],
+        startBlock,
+        endBlock,
+        proposalDescription,
       );
-      proposalId = args.proposalId;
-      expect(args.proposer).to.equal(voter1.address);
-      expect(args.description).to.equal(proposalDescription);
     });
   });
 
   describe('Voting', () => {
+    const vote = {
+      for: 0,
+      against: 1,
+      abstained: 2,
+    };
     it('voters should not have voted yet', async () => {
       const results = await Promise.all(
         [voter1, voter2, voter3].map((voter) => governor.hasVoted(proposalId, voter.address)),
       );
       results.forEach((hasVoted) => expect(hasVoted).to.be.false);
+    });
+
+    it('Voter 1 should vote FOR', async () => {
+      const reason = '';
+      const tx = governor
+        .connect(voter1)
+        .castVote(proposalId, vote.for);
+      await expect(tx)
+        .to.emit(governor, 'VoteCast')
+        .withArgs(voter1.address, proposalId, vote.for, voterRifAmount, reason);
+    });
+    it('Voter 2 should vote FOR', async () => {
+      const reason = '';
+      const tx = governor
+        .connect(voter2)
+        .castVote(proposalId, vote.for);
+      await expect(tx)
+        .to.emit(governor, 'VoteCast')
+        .withArgs(voter2.address, proposalId, vote.for, voterRifAmount, reason);
+    });
+    it('Voter 3 should vote AGAINST', async () => {
+      const reason = '';
+      const tx = governor
+        .connect(voter3)
+        .castVote(proposalId, vote.against);
+      await expect(tx)
+        .to.emit(governor, 'VoteCast')
+        .withArgs(voter3.address, proposalId, vote.against, voterRifAmount, reason);
     });
   });
 });

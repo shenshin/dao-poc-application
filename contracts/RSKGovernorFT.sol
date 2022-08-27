@@ -20,11 +20,11 @@ contract RSKGovernorFT is
     {}
 
     function votingDelay() public pure override returns (uint256) {
-        return 1; // 1 block
+        return 0; //  blocks
     }
 
     function votingPeriod() public pure override returns (uint256) {
-        return 2; // 1 minute
+        return 3; // blocks
     }
 
     // should have at least 1 vote to be able to create proposals
