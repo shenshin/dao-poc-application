@@ -7,7 +7,9 @@ module.exports = {
   networks: {
     hardhat: {},
     rskregtest: {
+      chainId: 33,
       url: 'http://localhost:4444',
+      accounts: 'remote',
     },
     rsktestnet: {
       chainId: 31,
