@@ -27,6 +27,11 @@ contract RSKGovernorFT is
         return 2; // 1 minute
     }
 
+    // should have at least 1 vote to be able to create proposals
+    function proposalThreshold() public pure override returns (uint256) {
+        return 1;
+    }
+
     // The following functions are overrides required by Solidity.
 
     function quorum(uint256 blockNumber)
