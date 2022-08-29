@@ -1,8 +1,3 @@
-/* const {
-  time,
-  loadFixture,
-} = require('@nomicfoundation/hardhat-network-helpers'); */
-const { anyValue } = require('@nomicfoundation/hardhat-chai-matchers/withArgs');
 const { expect } = require('chai');
 const hre = require('hardhat');
 
@@ -13,7 +8,7 @@ async function deployContract(name, ...params) {
   return contract;
 }
 
-describe('Governance', () => {
+describe('Governance - Fungible tokens voting', () => {
   let deployer;
   let voter1;
   let voter2;
@@ -22,7 +17,11 @@ describe('Governance', () => {
   let rifToken;
   let rifVoteToken;
   let governor;
+  // proposal
   let proposalId;
+  let proposalCalldata;
+  let proposalDescription;
+  let proposalDescriptionHash;
 
   const totalRifSupply = hre.ethers.BigNumber.from(1000);
   const voterRifAmount = hre.ethers.BigNumber.from(100);
@@ -35,7 +34,7 @@ describe('Governance', () => {
     governor = await deployContract('RSKGovernorFT', rifVoteToken.address);
   });
 
-  describe('RIF / RIFVote tokens', () => {
+  describe('RIF / RIFVote upon depoyment', () => {
     it('RIF total supply should be minted', async () => {
       expect(await rifToken.totalSupply()).to.equal(totalRifSupply);
     });
@@ -65,25 +64,28 @@ describe('Governance', () => {
         .to.emit(rifToken, 'Transfer')
         .withArgs(deployer.address, governor.address, treasuryRifAmount);
     });
+  });
 
+  describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
     it('voters should approve the RIF allowance for RIFVote', async () => {
       const txs = [voter1, voter2, voter3].map((voter) => ({
         voter,
-        promise: rifToken.connect(voter).approve(rifVoteToken.address, voterRifAmount),
+        promise: rifToken
+          .connect(voter)
+          .approve(rifVoteToken.address, voterRifAmount),
       }));
-      await Promise.all(txs.map((tx) => expect(tx.promise).to.emit(rifToken, 'Approval').withArgs(
-        tx.voter.address,
-        rifVoteToken.address,
-        voterRifAmount,
-      )));
+      await Promise.all(
+        txs.map((tx) => expect(tx.promise)
+          .to.emit(rifToken, 'Approval')
+          .withArgs(tx.voter.address, rifVoteToken.address, voterRifAmount)),
+      );
     });
 
     it('each voter allowance for RIFVote should be set on the RIF token', async () => {
       const allowances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) => rifToken.allowance(
-          voter.address,
-          rifVoteToken.address,
-        )),
+        [voter1, voter2, voter3].map(
+          (voter) => rifToken.allowance(voter.address, rifVoteToken.address),
+        ),
       );
       allowances.forEach((allowance) => expect(allowance).to.equal(voterRifAmount));
     });
@@ -91,13 +93,19 @@ describe('Governance', () => {
     it('voters should deposit underlying tokens and mint the corresponding number of wrapped tokens', async () => {
       const txs = [voter1, voter2, voter3].map((voter) => ({
         voter,
-        promise: rifVoteToken.connect(voter).depositFor(voter.address, voterRifAmount),
+        promise: rifVoteToken
+          .connect(voter)
+          .depositFor(voter.address, voterRifAmount),
       }));
-      await Promise.all(txs.map((tx) => expect(tx.promise).to.emit(rifVoteToken, 'Transfer').withArgs(
-        hre.ethers.constants.AddressZero,
-        tx.voter.address,
-        voterRifAmount,
-      )));
+      await Promise.all(
+        txs.map((tx) => expect(tx.promise)
+          .to.emit(rifVoteToken, 'Transfer')
+          .withArgs(
+            hre.ethers.constants.AddressZero,
+            tx.voter.address,
+            voterRifAmount,
+          )),
+      );
     });
 
     it('voters should now own the RIFVote tokens', async () => {
@@ -119,11 +127,15 @@ describe('Governance', () => {
         voter,
         promise: rifVoteToken.connect(voter).delegate(voter.address),
       }));
-      await Promise.all(txs.map((tx) => expect(tx.promise).to.emit(rifVoteToken, 'DelegateChanged').withArgs(
-        tx.voter.address,
-        hre.ethers.constants.AddressZero,
-        tx.voter.address,
-      )));
+      await Promise.all(
+        txs.map((tx) => expect(tx.promise)
+          .to.emit(rifVoteToken, 'DelegateChanged')
+          .withArgs(
+            tx.voter.address,
+            hre.ethers.constants.AddressZero,
+            tx.voter.address,
+          )),
+      );
     });
 
     it('voters should have voting power after the delegation', async () => {
@@ -135,13 +147,17 @@ describe('Governance', () => {
   });
 
   describe('Proposal creation', () => {
-    let calldata;
-    const proposalDescription = 'Proposal #1: Give a grant to proposer';
-
     before(async () => {
-      // the proposal is:
-      // Lets give all the RIF tokens from the Treasury to the team
-      calldata = rifToken.interface.encodeFunctionData('transfer', [
+      // The Proposal is as follows:
+      // Let's give all the RIF tokens from the Treasury to the team
+
+      proposalDescription = 'Proposal #1: Give a grant to proposer';
+      // calculating keccak256 hash of th proposal description
+      proposalDescriptionHash = hre.ethers.utils.keccak256(
+        hre.ethers.utils.toUtf8Bytes(proposalDescription),
+      );
+      // encoding RIF token `transfer` function call
+      proposalCalldata = rifToken.interface.encodeFunctionData('transfer', [
         team.address,
         treasuryRifAmount,
       ]);
@@ -149,55 +165,53 @@ describe('Governance', () => {
       proposalId = await governor.hashProposal(
         [rifToken.address],
         [0],
-        [calldata],
-        hre.ethers.utils.keccak256(
-          hre.ethers.utils.toUtf8Bytes(
-            proposalDescription,
-          ),
-        ),
+        [proposalCalldata],
+        proposalDescriptionHash,
       );
     });
 
     it('someone without voting power should not be able to create a proposal', async () => {
       const tx = governor
-        .connect(deployer).propose(
+        .connect(deployer)
+        .propose(
           [rifToken.address],
           [0],
-          [calldata],
+          [proposalCalldata],
           proposalDescription,
         );
-      await expect(tx).to.be.revertedWith('Governor: proposer votes below proposal threshold');
+      await expect(tx).to.be.revertedWith(
+        'proposer votes below proposal threshold',
+      );
     });
 
     it('voter 1 should be able to create a proposal', async () => {
       const startBlock = (await hre.ethers.provider.getBlockNumber()) + 1;
       const endBlock = startBlock + 3;
-      const tx = governor
-        .connect(voter1).propose(
-          [rifToken.address], // which address to send tx to on proposal execution
-          [0], // amount of Ether / RBTC to supply
-          [calldata], // encoded function call
-          proposalDescription,
-        );
+      const tx = governor.connect(voter1).propose(
+        [rifToken.address], // which address to send tx to on proposal execution
+        [0], // amount of Ether / RBTC to supply
+        [proposalCalldata], // encoded function call
+        proposalDescription,
+      );
       await expect(tx).to.emit(governor, 'ProposalCreated').withArgs(
         proposalId,
-        voter1.address,
-        [rifToken.address],
-        [0],
-        [''],
-        [calldata],
-        startBlock,
-        endBlock,
-        proposalDescription,
+        voter1.address, // proposer
+        [rifToken.address], // target addresses
+        [0], // target values
+        [''], // signatures
+        [proposalCalldata], // calldatas
+        startBlock, // proposal start block
+        endBlock, // proposal end block
+        proposalDescription, // proposal description
       );
     });
   });
 
   describe('Voting', () => {
     const vote = {
-      for: 0,
-      against: 1,
-      abstained: 2,
+      for: 1,
+      against: 2,
+      abstained: 3,
     };
     it('voters should not have voted yet', async () => {
       const results = await Promise.all(
@@ -208,30 +222,59 @@ describe('Governance', () => {
 
     it('Voter 1 should vote FOR', async () => {
       const reason = '';
-      const tx = governor
-        .connect(voter1)
-        .castVote(proposalId, vote.for);
+      const tx = governor.connect(voter1).castVote(proposalId, vote.for);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(voter1.address, proposalId, vote.for, voterRifAmount, reason);
     });
     it('Voter 2 should vote FOR', async () => {
       const reason = '';
-      const tx = governor
-        .connect(voter2)
-        .castVote(proposalId, vote.for);
+      const tx = governor.connect(voter2).castVote(proposalId, vote.for);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(voter2.address, proposalId, vote.for, voterRifAmount, reason);
     });
     it('Voter 3 should vote AGAINST', async () => {
       const reason = '';
-      const tx = governor
-        .connect(voter3)
-        .castVote(proposalId, vote.against);
+      const tx = governor.connect(voter3).castVote(proposalId, vote.against);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
-        .withArgs(voter3.address, proposalId, vote.against, voterRifAmount, reason);
+        .withArgs(
+          voter3.address,
+          proposalId,
+          vote.against,
+          voterRifAmount,
+          reason,
+        );
+    });
+  });
+
+  describe('Proposal execution', () => {
+    it('quorum should be reached', async () => {
+      expect(await governor.quorumReached(proposalId)).to.be.true;
+    });
+
+    it('voting should be successfull', async () => {
+      expect(await governor.voteSucceeded(proposalId)).to.be.true;
+    });
+
+    it('should execute the Proposal', async () => {
+      const tx = governor.execute(
+        [rifToken.address],
+        [0],
+        [proposalCalldata],
+        proposalDescriptionHash,
+      );
+      await expect(tx)
+        .to.emit(governor, 'ProposalExecuted')
+        .withArgs(proposalId);
+    });
+
+    it("governor's RIF treasury tokens should be transferred to the team", async () => {
+      expect(await rifToken.balanceOf(team.address)).to.equal(
+        treasuryRifAmount,
+      );
+      expect(await rifToken.balanceOf(governor.address)).to.equal(0);
     });
   });
 });

@@ -32,6 +32,14 @@ contract RSKGovernorFT is
         return 1;
     }
 
+    function quorumReached(uint256 proposalId) external view returns (bool) {
+        return _quorumReached(proposalId);
+    }
+
+    function voteSucceeded(uint256 proposalId) external view returns (bool) {
+        return _voteSucceeded(proposalId);
+    }
+
     // The following functions are overrides required by Solidity.
 
     function quorum(uint256 blockNumber)
