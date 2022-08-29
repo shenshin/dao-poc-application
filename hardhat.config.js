@@ -19,9 +19,6 @@ module.exports = {
         path: "m/44'/60'/0'/0",
       },
     },
-    ganache: {
-      url: 'http://127.0.0.1:7545',
-    },
   },
   mocha: {
     timeout: 600000,
