@@ -1,28 +1,6 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
-
-async function deployContract(name, ...params) {
-  const ContractFactory = await ethers.getContractFactory(name);
-  const contract = await ContractFactory.deploy(...params);
-  await contract.deployed();
-  return contract;
-}
-
-function skipBlocks(blocksToSkip) {
-  return new Promise((resolve) => {
-    (async () => {
-      if (hre.network.name === 'hardhat') {
-        await hre.network.provider.send('hardhat_mine', [`0x${blocksToSkip.toString(16)}`]);
-        resolve();
-      } else {
-        const deadline = (await hre.ethers.provider.getBlockNumber()) + blocksToSkip;
-        hre.ethers.provider.on('block', (blockNumber) => {
-          if (blockNumber >= deadline) resolve();
-        });
-      }
-    })();
-  });
-}
+const { deployContract, skipBlocks } = require('../util');
 
 describe('Governance - Fungible tokens voting', () => {
   let deployer;
@@ -228,6 +206,7 @@ describe('Governance - Fungible tokens voting', () => {
     });
 
     it('Voter 1 should vote FOR', async () => {
+      await skipBlocks(1);
       const reason = '';
       const tx = governor.connect(voter1).castVote(proposalId, vote.for);
       await expect(tx)
@@ -268,7 +247,7 @@ describe('Governance - Fungible tokens voting', () => {
     it('should execute the Proposal', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
-      await skipBlocks(deadline - currentBlock);
+      await skipBlocks(deadline - currentBlock + 1);
       const tx = governor.execute(
         [rifToken.address],
         [0],

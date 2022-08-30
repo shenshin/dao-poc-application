@@ -24,7 +24,7 @@ contract RSKGovernorFT is
     }
 
     function votingPeriod() public pure override returns (uint256) {
-        return 15; // blocks
+        return 16; // blocks
     }
 
     // should have at least 1 vote to be able to create proposals
