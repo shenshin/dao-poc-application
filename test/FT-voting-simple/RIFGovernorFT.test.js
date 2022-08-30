@@ -302,8 +302,42 @@ describe('Governance - Fungible tokens voting', () => {
   });
 
   describe('Release wrapped RIF tokens', () => {
-    it('should release', async () => {
-      // TODO: test release
+    it('voters RIF balances should be zero, since they exchanged their RIFs to RIFVotes', async () => {
+      const balances = await Promise.all(
+        [voter1, voter2, voter3].map((voter) =>
+          rifToken.balanceOf(voter.address),
+        ),
+      );
+      balances.forEach((balance) => expect(balance).to.equal(0));
+    });
+
+    it('should burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens', async () => {
+      const txs = [voter1, voter2, voter3].map((voter) => ({
+        voter,
+        promise: rifVoteToken
+          .connect(voter)
+          .withdrawTo(voter.address, voterRifAmount),
+      }));
+      await Promise.all(
+        txs.map((tx) =>
+          expect(tx.promise)
+            .to.emit(rifVoteToken, 'Transfer')
+            .withArgs(
+              tx.voter.address,
+              hre.ethers.constants.AddressZero,
+              voterRifAmount,
+            ),
+        ),
+      );
+    });
+
+    it('voters should return their RIF tokens', async () => {
+      const balances = await Promise.all(
+        [voter1, voter2, voter3].map((voter) =>
+          rifToken.balanceOf(voter.address),
+        ),
+      );
+      balances.forEach((balance) => expect(balance).to.equal(voterRifAmount));
     });
   });
 });
