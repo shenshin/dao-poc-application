@@ -195,10 +195,10 @@ describe('Governance - Fungible tokens voting', () => {
   });
 
   describe('Voting', () => {
-    const vote = {
-      for: 1,
-      against: 2,
-      abstained: 3,
+    const VoteType = {
+      Against: 0,
+      For: 1,
+      Abstain: 2,
     };
     it('voters should not have voted yet', async () => {
       const results = await Promise.all(
@@ -210,27 +210,27 @@ describe('Governance - Fungible tokens voting', () => {
     it('Voter 1 should vote FOR', async () => {
       await skipBlocks(1);
       const reason = '';
-      const tx = governor.connect(voter1).castVote(proposalId, vote.for);
+      const tx = governor.connect(voter1).castVote(proposalId, VoteType.For);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
-        .withArgs(voter1.address, proposalId, vote.for, voterRifAmount, reason);
+        .withArgs(voter1.address, proposalId, VoteType.For, voterRifAmount, reason);
     });
     it('Voter 2 should vote FOR', async () => {
       const reason = '';
-      const tx = governor.connect(voter2).castVote(proposalId, vote.for);
+      const tx = governor.connect(voter2).castVote(proposalId, VoteType.For);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
-        .withArgs(voter2.address, proposalId, vote.for, voterRifAmount, reason);
+        .withArgs(voter2.address, proposalId, VoteType.For, voterRifAmount, reason);
     });
     it('Voter 3 should vote AGAINST', async () => {
       const reason = '';
-      const tx = governor.connect(voter3).castVote(proposalId, vote.against);
+      const tx = governor.connect(voter3).castVote(proposalId, VoteType.Against);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(
           voter3.address,
           proposalId,
-          vote.against,
+          VoteType.Against,
           voterRifAmount,
           reason,
         );
