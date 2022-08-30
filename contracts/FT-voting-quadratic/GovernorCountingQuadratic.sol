@@ -7,6 +7,27 @@ import './FixedPointMathLib.sol';
 abstract contract GovernorCountingQuadratic is GovernorCountingSimple {
     using FixedPointMathLib for uint256;
     mapping(uint256 => ProposalVote) private _proposalVotes;
+
+    function getForVotes(uint256 _proposalId) external view returns (uint256) {
+        return _proposalVotes[_proposalId].forVotes;
+    }
+
+    function getAgainstVotes(uint256 _proposalId)
+        external
+        view
+        returns (uint256)
+    {
+        return _proposalVotes[_proposalId].againstVotes;
+    }
+
+    function getAbstainVotes(uint256 _proposalId)
+        external
+        view
+        returns (uint256)
+    {
+        return _proposalVotes[_proposalId].abstainVotes;
+    }
+
     function _countVote(
         uint256 proposalId,
         address account,

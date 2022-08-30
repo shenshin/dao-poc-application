@@ -4,9 +4,7 @@ const { deployContract, skipBlocks } = require('../../util');
 
 describe('Governance - Fungible tokens voting', () => {
   let deployer;
-  let voter1;
-  let voter2;
-  let voter3;
+  let voters;
   let team;
   let rifToken;
   let rifVoteToken;
@@ -22,7 +20,9 @@ describe('Governance - Fungible tokens voting', () => {
   const treasuryRifAmount = hre.ethers.BigNumber.from(700);
 
   before(async () => {
-    [deployer, voter1, voter2, voter3, team] = await hre.ethers.getSigners();
+    const signers = await hre.ethers.getSigners();
+    [deployer, team] = signers;
+    voters = signers.slice(2, 5);
     rifToken = await deployContract('RIFToken', totalRifSupply);
     rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
     governor = await deployContract('RIFGovernorFT', rifVoteToken.address);
@@ -38,18 +38,17 @@ describe('Governance - Fungible tokens voting', () => {
     });
 
     it('The deployer should transfer all RIF tokens to the Voters equally', async () => {
-      const tx1 = rifToken.transfer(voter1.address, voterRifAmount);
-      await expect(tx1)
-        .to.emit(rifToken, 'Transfer')
-        .withArgs(deployer.address, voter1.address, voterRifAmount);
-      const tx2 = rifToken.transfer(voter2.address, voterRifAmount);
-      await expect(tx2)
-        .to.emit(rifToken, 'Transfer')
-        .withArgs(deployer.address, voter2.address, voterRifAmount);
-      const tx3 = rifToken.transfer(voter3.address, voterRifAmount);
-      await expect(tx3)
-        .to.emit(rifToken, 'Transfer')
-        .withArgs(deployer.address, voter3.address, voterRifAmount);
+      const wallets = [...voters];
+      async function transferRifs() {
+        const voter = wallets.pop();
+        if (voter) {
+          await expect(rifToken.transfer(voter.address, voterRifAmount))
+            .to.emit(rifToken, 'Transfer')
+            .withArgs(deployer.address, voter.address, voterRifAmount);
+          await transferRifs();
+        }
+      }
+      await transferRifs();
     });
 
     it('The deployer should transfer the rest of RIF tokens to the Governance Treasury', async () => {
@@ -62,7 +61,7 @@ describe('Governance - Fungible tokens voting', () => {
 
   describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
     it('voters should approve the RIF allowance for RIFVote', async () => {
-      const txs = [voter1, voter2, voter3].map((voter) => ({
+      const txs = voters.map((voter) => ({
         voter,
         promise: rifToken
           .connect(voter)
@@ -79,7 +78,7 @@ describe('Governance - Fungible tokens voting', () => {
 
     it('each voter allowance for RIFVote should be set on the RIF token', async () => {
       const allowances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
+        voters.map((voter) =>
           rifToken.allowance(voter.address, rifVoteToken.address),
         ),
       );
@@ -89,7 +88,7 @@ describe('Governance - Fungible tokens voting', () => {
     });
 
     it('voters should deposit underlying tokens and mint the corresponding number of wrapped tokens', async () => {
-      const txs = [voter1, voter2, voter3].map((voter) => ({
+      const txs = voters.map((voter) => ({
         voter,
         promise: rifVoteToken
           .connect(voter)
@@ -110,24 +109,20 @@ describe('Governance - Fungible tokens voting', () => {
 
     it('voters should now own the RIFVote tokens', async () => {
       const balances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
-          rifVoteToken.balanceOf(voter.address),
-        ),
+        voters.map((voter) => rifVoteToken.balanceOf(voter.address)),
       );
       balances.forEach((balance) => expect(balance).to.equal(voterRifAmount));
     });
 
     it('voters should not have voting power before delegating it', async () => {
       const voteBalances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
-          rifVoteToken.getVotes(voter.address),
-        ),
+        voters.map((voter) => rifVoteToken.getVotes(voter.address)),
       );
       voteBalances.forEach((balance) => expect(balance).to.equal(0));
     });
 
     it('RIFVote token holders should self-delegate the voting power', async () => {
-      const txs = [voter1, voter2, voter3].map((voter) => ({
+      const txs = voters.map((voter) => ({
         voter,
         promise: rifVoteToken.connect(voter).delegate(voter.address),
       }));
@@ -146,9 +141,7 @@ describe('Governance - Fungible tokens voting', () => {
 
     it('voters should have voting power after the delegation', async () => {
       const voteBalances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
-          rifVoteToken.getVotes(voter.address),
-        ),
+        voters.map((voter) => rifVoteToken.getVotes(voter.address)),
       );
       voteBalances.forEach((balance) =>
         expect(balance).to.equal(voterRifAmount),
@@ -196,7 +189,7 @@ describe('Governance - Fungible tokens voting', () => {
 
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
-      const tx = await governor.connect(voter1).propose(
+      const tx = await governor.connect(voters[0]).propose(
         [rifToken.address], // which address to send tx to on proposal execution
         [0], // amount of Ether / RBTC to supply
         [proposalCalldata], // encoded function call
@@ -218,9 +211,7 @@ describe('Governance - Fungible tokens voting', () => {
     };
     it('voters should not have voted yet', async () => {
       const results = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
-          governor.hasVoted(proposalId, voter.address),
-        ),
+        voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
       );
       results.forEach((hasVoted) => expect(hasVoted).to.be.false);
     });
@@ -228,11 +219,11 @@ describe('Governance - Fungible tokens voting', () => {
     it('Voter 1 should vote FOR', async () => {
       await skipBlocks(1);
       const reason = '';
-      const tx = governor.connect(voter1).castVote(proposalId, VoteType.For);
+      const tx = governor.connect(voters[0]).castVote(proposalId, VoteType.For);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(
-          voter1.address,
+          voters[0].address,
           proposalId,
           VoteType.For,
           voterRifAmount,
@@ -241,11 +232,11 @@ describe('Governance - Fungible tokens voting', () => {
     });
     it('Voter 2 should vote FOR', async () => {
       const reason = '';
-      const tx = governor.connect(voter2).castVote(proposalId, VoteType.For);
+      const tx = governor.connect(voters[1]).castVote(proposalId, VoteType.For);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(
-          voter2.address,
+          voters[1].address,
           proposalId,
           VoteType.For,
           voterRifAmount,
@@ -255,12 +246,12 @@ describe('Governance - Fungible tokens voting', () => {
     it('Voter 3 should vote AGAINST', async () => {
       const reason = '';
       const tx = governor
-        .connect(voter3)
+        .connect(voters[2])
         .castVote(proposalId, VoteType.Against);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(
-          voter3.address,
+          voters[2].address,
           proposalId,
           VoteType.Against,
           voterRifAmount,
@@ -304,15 +295,13 @@ describe('Governance - Fungible tokens voting', () => {
   describe('Release wrapped RIF tokens', () => {
     it('voters RIF balances should be zero, since they exchanged their RIFs to RIFVotes', async () => {
       const balances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
-          rifToken.balanceOf(voter.address),
-        ),
+        voters.map((voter) => rifToken.balanceOf(voter.address)),
       );
       balances.forEach((balance) => expect(balance).to.equal(0));
     });
 
     it('should burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens', async () => {
-      const txs = [voter1, voter2, voter3].map((voter) => ({
+      const txs = voters.map((voter) => ({
         voter,
         promise: rifVoteToken
           .connect(voter)
@@ -333,9 +322,7 @@ describe('Governance - Fungible tokens voting', () => {
 
     it('voters should return their RIF tokens', async () => {
       const balances = await Promise.all(
-        [voter1, voter2, voter3].map((voter) =>
-          rifToken.balanceOf(voter.address),
-        ),
+        voters.map((voter) => rifToken.balanceOf(voter.address)),
       );
       balances.forEach((balance) => expect(balance).to.equal(voterRifAmount));
     });
