@@ -7,14 +7,14 @@ import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
 
 /// @custom:security-contact shenshin@me.com
-contract RSKGovernorFT is
+contract RIFGovernorFT is
     Governor,
     GovernorCountingSimple,
     GovernorVotes,
     GovernorVotesQuorumFraction
 {
     constructor(IVotes _token)
-        Governor('RSKGovernorFT')
+        Governor('RIFGovernorFT')
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(4)
     {}

@@ -25,7 +25,7 @@ describe('Governance - Fungible tokens voting', () => {
     [deployer, voter1, voter2, voter3, team] = await hre.ethers.getSigners();
     rifToken = await deployContract('RIFToken', totalRifSupply);
     rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
-    governor = await deployContract('RSKGovernorFT', rifVoteToken.address);
+    governor = await deployContract('RIFGovernorFT', rifVoteToken.address);
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -187,7 +187,9 @@ describe('Governance - Fungible tokens voting', () => {
         proposalDescription,
       );
       const receipt = await tx.wait();
-      const { args } = receipt.events.find((e) => e.event === 'ProposalCreated');
+      const { args } = receipt.events.find(
+        (e) => e.event === 'ProposalCreated',
+      );
       expect(args.proposalId).to.equal(proposalId);
     });
   });
