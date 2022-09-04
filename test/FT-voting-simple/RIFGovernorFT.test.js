@@ -9,6 +9,7 @@ describe('Governance - Fungible tokens voting', () => {
   let rifToken;
   let rifVoteToken;
   let governor;
+  let proposalTarget;
   // proposal
   let proposalId;
   let proposalCalldata;
@@ -26,6 +27,12 @@ describe('Governance - Fungible tokens voting', () => {
     rifToken = await deployContract('RIFToken', totalRifSupply);
     rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
     governor = await deployContract('RIFGovernorFT', rifVoteToken.address);
+    const targetAddress = await governor.proposalTarget();
+    proposalTarget = await hre.ethers.getContractAt(
+      'ProposalTarget',
+      targetAddress,
+      deployer,
+    );
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -280,7 +287,7 @@ describe('Governance - Fungible tokens voting', () => {
         proposalDescriptionHash,
       );
       await expect(tx)
-        .to.emit(governor, 'ProposalExecuted')
+        .to.emit(proposalTarget, 'ProposalProcessed')
         .withArgs(proposalId);
     });
 
@@ -292,7 +299,7 @@ describe('Governance - Fungible tokens voting', () => {
     });
   });
 
-  describe('Release wrapped RIF tokens', () => {
+  describe('Unwrap RIF tokens', () => {
     it('voters RIF balances should be zero, since they exchanged their RIFs to RIFVotes', async () => {
       const balances = await Promise.all(
         voters.map((voter) => rifToken.balanceOf(voter.address)),
@@ -300,7 +307,7 @@ describe('Governance - Fungible tokens voting', () => {
       balances.forEach((balance) => expect(balance).to.equal(0));
     });
 
-    it('should burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens', async () => {
+    it('should unwrap governance tokens to obtain regular tokens', async () => {
       const txs = voters.map((voter) => ({
         voter,
         promise: rifVoteToken
@@ -325,6 +332,14 @@ describe('Governance - Fungible tokens voting', () => {
         voters.map((voter) => rifToken.balanceOf(voter.address)),
       );
       balances.forEach((balance) => expect(balance).to.equal(voterRifAmount));
+    });
+  });
+
+  describe('Calling proposal target smart contract', () => {
+    it(`target should be only called by the governor`, async () => {
+      await expect(
+        proposalTarget.onProposalExecution(proposalId),
+      ).to.be.revertedWith('can be called only by the governor');
     });
   });
 });

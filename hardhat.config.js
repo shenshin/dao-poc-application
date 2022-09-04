@@ -3,7 +3,10 @@ const { mnemonic } = require('./.secret.json');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: '0.8.9',
+  solidity: {
+    version: '0.8.9',
+    optimizer: { enabled: true, runs: 200 },
+  },
   networks: {
     hardhat: {},
     rskregtest: {
@@ -17,6 +20,12 @@ module.exports = {
       accounts: {
         mnemonic,
         path: "m/44'/60'/0'/0",
+      },
+    },
+    ethereum: {
+      url: `https://mainnet.infura.io/v3/637a166b44254d19830b8b60ea60a67b`,
+      accounts: {
+        mnemonic,
       },
     },
   },
