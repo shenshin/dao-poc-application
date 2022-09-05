@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol';
-import './FixedPointMathLib.sol';
+import '../util/FixedPointMathLib.sol';
 
 abstract contract GovernorCountingQuadratic is GovernorCountingSimple {
     using FixedPointMathLib for uint256;

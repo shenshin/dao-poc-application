@@ -9,11 +9,13 @@ describe('Governance - Fungible tokens voting', () => {
   let rifToken;
   let rifVoteToken;
   let governor;
+  let proposalTarget;
   // proposal
   let proposalId;
   let proposalCalldata;
   let proposalDescription;
   let proposalDescriptionHash;
+  let setTargetCalldata;
 
   const totalRifSupply = hre.ethers.BigNumber.from(1000);
   const voterRifAmount = hre.ethers.BigNumber.from(100);
@@ -26,6 +28,7 @@ describe('Governance - Fungible tokens voting', () => {
     rifToken = await deployContract('RIFToken', totalRifSupply);
     rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
     governor = await deployContract('RIFGovernorFT', rifVoteToken.address);
+    proposalTarget = await deployContract('ProposalTarget', governor.address);
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -164,11 +167,16 @@ describe('Governance - Fungible tokens voting', () => {
         team.address,
         treasuryRifAmount,
       ]);
+      // encoding the setting of proposal target reference on the governor
+      setTargetCalldata = governor.interface.encodeFunctionData(
+        'updateProposalTarget',
+        [proposalTarget.address],
+      );
       // get proposal ID before creating the proposal
       proposalId = await governor.hashProposal(
-        [rifToken.address],
-        [0],
-        [proposalCalldata],
+        [rifToken.address, governor.address],
+        [0, 0],
+        [proposalCalldata, setTargetCalldata],
         proposalDescriptionHash,
       );
     });
@@ -177,9 +185,9 @@ describe('Governance - Fungible tokens voting', () => {
       const tx = governor
         .connect(deployer)
         .propose(
-          [rifToken.address],
-          [0],
-          [proposalCalldata],
+          [rifToken.address, governor.address],
+          [0, 0],
+          [proposalCalldata, setTargetCalldata],
           proposalDescription,
         );
       await expect(tx).to.be.revertedWith(
@@ -190,9 +198,9 @@ describe('Governance - Fungible tokens voting', () => {
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
       const tx = await governor.connect(voters[0]).propose(
-        [rifToken.address], // which address to send tx to on proposal execution
-        [0], // amount of Ether / RBTC to supply
-        [proposalCalldata], // encoded function call
+        [rifToken.address, governor.address], // which address to send tx to on proposal execution
+        [0, 0], // amount of Ether / RBTC to supply
+        [proposalCalldata, setTargetCalldata], // encoded function call
         proposalDescription,
       );
       const receipt = await tx.wait();
@@ -269,18 +277,18 @@ describe('Governance - Fungible tokens voting', () => {
       expect(await governor.voteSucceeded(proposalId)).to.be.true;
     });
 
-    it('should execute the Proposal', async () => {
+    it('should execute the Proposal and call its target contract', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
       const tx = governor.execute(
-        [rifToken.address],
-        [0],
-        [proposalCalldata],
+        [rifToken.address, governor.address],
+        [0, 0],
+        [proposalCalldata, setTargetCalldata],
         proposalDescriptionHash,
       );
       await expect(tx)
-        .to.emit(governor, 'ProposalExecuted')
+        .to.emit(proposalTarget, 'ProposalProcessed')
         .withArgs(proposalId);
     });
 
@@ -292,7 +300,7 @@ describe('Governance - Fungible tokens voting', () => {
     });
   });
 
-  describe('Release wrapped RIF tokens', () => {
+  describe('Unwrap RIF tokens', () => {
     it('voters RIF balances should be zero, since they exchanged their RIFs to RIFVotes', async () => {
       const balances = await Promise.all(
         voters.map((voter) => rifToken.balanceOf(voter.address)),
@@ -300,7 +308,7 @@ describe('Governance - Fungible tokens voting', () => {
       balances.forEach((balance) => expect(balance).to.equal(0));
     });
 
-    it('should burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens', async () => {
+    it('should unwrap governance tokens to obtain regular tokens', async () => {
       const txs = voters.map((voter) => ({
         voter,
         promise: rifVoteToken
@@ -325,6 +333,14 @@ describe('Governance - Fungible tokens voting', () => {
         voters.map((voter) => rifToken.balanceOf(voter.address)),
       );
       balances.forEach((balance) => expect(balance).to.equal(voterRifAmount));
+    });
+  });
+
+  describe('Calling proposal target smart contract', () => {
+    it(`target should be only called by the governor`, async () => {
+      await expect(
+        proposalTarget.onProposalExecution(proposalId),
+      ).to.be.revertedWith('can be called only by the governor');
     });
   });
 });

@@ -6,7 +6,6 @@ import './GovernorCountingQuadratic.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
 
-/// @custom:security-contact shenshin@me.com
 contract RIFGovernorFtQuadratic is
     Governor,
     GovernorCountingQuadratic,

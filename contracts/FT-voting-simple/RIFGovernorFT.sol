@@ -5,19 +5,49 @@ import '@openzeppelin/contracts/governance/Governor.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
+import './ProposalTarget.sol';
 
-/// @custom:security-contact shenshin@me.com
 contract RIFGovernorFT is
     Governor,
     GovernorCountingSimple,
     GovernorVotes,
     GovernorVotesQuorumFraction
 {
+    IProposalTarget public proposalTarget;
+
     constructor(IVotes _token)
         Governor('RIFGovernorFT')
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(4)
     {}
+
+    function updateProposalTarget(IProposalTarget _newTarget) public {
+        // can not be private since its call will be encoded in proposals
+        require(
+            msg.sender == address(this),
+            'should be called only by the Governor'
+        );
+        proposalTarget = _newTarget;
+    }
+
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public payable override returns (uint256) {
+        uint256 proposalId = super.execute(
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
+        // call function on the target smart contract after the proposal execution
+        if (address(proposalTarget) != address(0)) {
+            proposalTarget.onProposalExecution(proposalId);
+        }
+        return proposalId;
+    }
 
     function votingDelay() public pure override returns (uint256) {
         return 0; //  blocks
