@@ -15,6 +15,7 @@ describe('Governance - Fungible tokens voting', () => {
   let proposalCalldata;
   let proposalDescription;
   let proposalDescriptionHash;
+  let setTargetCalldata;
 
   const totalRifSupply = hre.ethers.BigNumber.from(1000);
   const voterRifAmount = hre.ethers.BigNumber.from(100);
@@ -27,12 +28,7 @@ describe('Governance - Fungible tokens voting', () => {
     rifToken = await deployContract('RIFToken', totalRifSupply);
     rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
     governor = await deployContract('RIFGovernorFT', rifVoteToken.address);
-    const targetAddress = await governor.proposalTarget();
-    proposalTarget = await hre.ethers.getContractAt(
-      'ProposalTarget',
-      targetAddress,
-      deployer,
-    );
+    proposalTarget = await deployContract('ProposalTarget', governor.address);
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -171,11 +167,17 @@ describe('Governance - Fungible tokens voting', () => {
         team.address,
         treasuryRifAmount,
       ]);
+      const iface = new hre.ethers.utils.Interface([
+        'function updateProposalTarget(address _newTarget)',
+      ]);
+      setTargetCalldata = iface.encodeFunctionData('updateProposalTarget', [
+        proposalTarget.address,
+      ]);
       // get proposal ID before creating the proposal
       proposalId = await governor.hashProposal(
-        [rifToken.address],
-        [0],
-        [proposalCalldata],
+        [rifToken.address, governor.address],
+        [0, 0],
+        [proposalCalldata, setTargetCalldata],
         proposalDescriptionHash,
       );
     });
@@ -184,9 +186,9 @@ describe('Governance - Fungible tokens voting', () => {
       const tx = governor
         .connect(deployer)
         .propose(
-          [rifToken.address],
-          [0],
-          [proposalCalldata],
+          [rifToken.address, governor.address],
+          [0, 0],
+          [proposalCalldata, setTargetCalldata],
           proposalDescription,
         );
       await expect(tx).to.be.revertedWith(
@@ -197,9 +199,9 @@ describe('Governance - Fungible tokens voting', () => {
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
       const tx = await governor.connect(voters[0]).propose(
-        [rifToken.address], // which address to send tx to on proposal execution
-        [0], // amount of Ether / RBTC to supply
-        [proposalCalldata], // encoded function call
+        [rifToken.address, governor.address], // which address to send tx to on proposal execution
+        [0, 0], // amount of Ether / RBTC to supply
+        [proposalCalldata, setTargetCalldata], // encoded function call
         proposalDescription,
       );
       const receipt = await tx.wait();
@@ -276,14 +278,14 @@ describe('Governance - Fungible tokens voting', () => {
       expect(await governor.voteSucceeded(proposalId)).to.be.true;
     });
 
-    it('should execute the Proposal', async () => {
+    it('should execute the Proposal and call its target contract', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
       const tx = governor.execute(
-        [rifToken.address],
-        [0],
-        [proposalCalldata],
+        [rifToken.address, governor.address],
+        [0, 0],
+        [proposalCalldata, setTargetCalldata],
         proposalDescriptionHash,
       );
       await expect(tx)

@@ -13,15 +13,21 @@ contract RIFGovernorFT is
     GovernorVotes,
     GovernorVotesQuorumFraction
 {
-    ProposalTarget public immutable proposalTarget;
+    IProposalTarget public proposalTarget;
 
     constructor(IVotes _token)
         Governor('RIFGovernorFT')
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(4)
-    {
-        // deploy proposal target smart contract
-        proposalTarget = new ProposalTarget();
+    {}
+
+    function updateProposalTarget(IProposalTarget _newTarget) public {
+        // can not be private since its call will be encoded in proposals
+        require(
+            msg.sender == address(this),
+            'should be called only by the Governor'
+        );
+        proposalTarget = _newTarget;
     }
 
     function execute(
@@ -37,7 +43,9 @@ contract RIFGovernorFT is
             descriptionHash
         );
         // call function on the target smart contract after the proposal execution
-        proposalTarget.onProposalExecution(proposalId);
+        if (address(proposalTarget) != address(0)) {
+            proposalTarget.onProposalExecution(proposalId);
+        }
         return proposalId;
     }
 
