@@ -167,12 +167,11 @@ describe('Governance - Fungible tokens voting', () => {
         team.address,
         treasuryRifAmount,
       ]);
-      const iface = new hre.ethers.utils.Interface([
-        'function updateProposalTarget(address _newTarget)',
-      ]);
-      setTargetCalldata = iface.encodeFunctionData('updateProposalTarget', [
-        proposalTarget.address,
-      ]);
+      // encoding the setting of proposal target reference on the governor
+      setTargetCalldata = governor.interface.encodeFunctionData(
+        'updateProposalTarget',
+        [proposalTarget.address],
+      );
       // get proposal ID before creating the proposal
       proposalId = await governor.hashProposal(
         [rifToken.address, governor.address],
