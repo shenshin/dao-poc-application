@@ -22,8 +22,8 @@ module.exports = {
         path: "m/44'/60'/0'/0",
       },
     },
-    ethereum: {
-      url: `https://mainnet.infura.io/v3/637a166b44254d19830b8b60ea60a67b`,
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/637a166b44254d19830b8b60ea60a67b`,
       accounts: {
         mnemonic,
       },

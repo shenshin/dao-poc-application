@@ -298,6 +298,10 @@ describe('Governance - Fungible tokens voting', () => {
       );
       expect(await rifToken.balanceOf(governor.address)).to.equal(0);
     });
+
+    it('address of the proposal target should be set on the governor', async () => {
+      expect(await governor.proposalTarget()).to.equal(proposalTarget.address);
+    });
   });
 
   describe('Unwrap RIF tokens', () => {

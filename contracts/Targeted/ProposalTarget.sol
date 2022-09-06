@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/governance/IGovernor.sol';
 
 interface IProposalTarget {
@@ -12,10 +11,10 @@ interface IProposalTarget {
     function onProposalExecution(uint256 _proposalId) external;
 }
 
-contract ProposalTarget is IProposalTarget, Ownable {
+contract ProposalTarget is IProposalTarget {
     IGovernor public governor;
 
-    modifier governorOnly() {
+    modifier onlyGovernor() {
         require(
             msg.sender == address(governor),
             'can be called only by the governor'
@@ -27,11 +26,13 @@ contract ProposalTarget is IProposalTarget, Ownable {
         _setGovernor(_governor);
     }
 
-    function setGovernor(IGovernor _governor) external onlyOwner {
+    // governor can assign a new governor
+    function setGovernor(IGovernor _governor) external onlyGovernor {
         _setGovernor(_governor);
     }
 
-    function onProposalExecution(uint256 _proposalId) external governorOnly {
+    // executes by the governor on each proposal execution
+    function onProposalExecution(uint256 _proposalId) external onlyGovernor {
         require(
             governor.state(_proposalId) == IGovernor.ProposalState.Executed,
             'Proposal was not executed yet'

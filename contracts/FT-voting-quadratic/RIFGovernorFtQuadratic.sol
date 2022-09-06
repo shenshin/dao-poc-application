@@ -5,17 +5,17 @@ import '@openzeppelin/contracts/governance/Governor.sol';
 import './GovernorCountingQuadratic.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
+import '../Targeted/GovernorTargeted.sol';
 
 contract RIFGovernorFtQuadratic is
     Governor,
-    GovernorCountingQuadratic,
     GovernorVotes,
-    GovernorVotesQuorumFraction
+    GovernorCountingQuadratic,
+    GovernorTargeted
 {
     constructor(IVotes _token)
         Governor('RIFGovernorFtQuadratic')
         GovernorVotes(_token)
-        GovernorVotesQuorumFraction(4)
     {}
 
     function votingDelay() public pure override returns (uint256) {
@@ -40,13 +40,12 @@ contract RIFGovernorFtQuadratic is
     }
 
     // The following functions are overrides required by Solidity.
-
-    function quorum(uint256 blockNumber)
-        public
-        view
-        override(IGovernor, GovernorVotesQuorumFraction)
-        returns (uint256)
-    {
-        return super.quorum(blockNumber);
+    function execute(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public payable override(Governor, GovernorTargeted) returns (uint256) {
+        return super.execute(targets, values, calldatas, descriptionHash);
     }
 }

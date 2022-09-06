@@ -8,14 +8,22 @@ describe('Governance - Fungible tokens voting', () => {
   let voters;
   let rifVoteToken;
   let governor;
+  let proposalTarget;
   // proposal
   let proposalId;
   let proposalCalldata;
   let proposalDescription;
   let proposalDescriptionHash;
+  let setTargetCalldata;
 
-  const totalSupply = 1e5;
-  const treasuryRifAmount = 1e3;
+  const totalSupply = 10301;
+  const treasuryRifAmount = 200;
+
+  const VoteType = {
+    Against: 0,
+    For: 1,
+    Abstain: 2,
+  };
 
   before(async () => {
     const signers = await hre.ethers.getSigners();
@@ -30,6 +38,7 @@ describe('Governance - Fungible tokens voting', () => {
       'RIFGovernorFtQuadratic',
       rifVoteToken.address,
     );
+    proposalTarget = await deployContract('ProposalTarget', governor.address);
   });
 
   describe('RIFVote upon depoyment', () => {
@@ -87,11 +96,16 @@ describe('Governance - Fungible tokens voting', () => {
           'transfer',
           [team.address, treasuryRifAmount],
         );
+        // encoding the setting of proposal target reference on the governor
+        setTargetCalldata = governor.interface.encodeFunctionData(
+          'updateProposalTarget',
+          [proposalTarget.address],
+        );
         // get proposal ID before creating the proposal
         proposalId = await governor.hashProposal(
-          [rifVoteToken.address],
-          [0],
-          [proposalCalldata],
+          [rifVoteToken.address, governor.address],
+          [0, 0],
+          [proposalCalldata, setTargetCalldata],
           proposalDescriptionHash,
         );
       });
@@ -99,9 +113,9 @@ describe('Governance - Fungible tokens voting', () => {
       it('voter 1 should be able to create a proposal', async () => {
         await skipBlocks(1);
         const tx = await governor.connect(voters[0]).propose(
-          [rifVoteToken.address], // which address to send tx to on proposal execution
-          [0], // amount of Ether / RBTC to supply
-          [proposalCalldata], // encoded function call
+          [rifVoteToken.address, governor.address], // which address to send tx to on proposal execution
+          [0, 0], // amount of Ether / RBTC to supply
+          [proposalCalldata, setTargetCalldata], // encoded function call
           proposalDescription,
         );
         const receipt = await tx.wait();
@@ -113,11 +127,6 @@ describe('Governance - Fungible tokens voting', () => {
     });
 
     describe('Voting', () => {
-      const VoteType = {
-        Against: 0,
-        For: 1,
-        Abstain: 2,
-      };
       it('voters should not have voted yet', async () => {
         const results = await Promise.all(
           voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
@@ -125,18 +134,18 @@ describe('Governance - Fungible tokens voting', () => {
         results.forEach((hasVoted) => expect(hasVoted).to.be.false);
       });
 
-      it('Voter 1 should vote against', async () => {
+      it('Voter 1 should vote for', async () => {
         await skipBlocks(1);
         const reason = '';
         const tx = governor
           .connect(voters[0])
-          .castVote(proposalId, VoteType.Against);
+          .castVote(proposalId, VoteType.For);
         await expect(tx)
           .to.emit(governor, 'VoteCast')
           .withArgs(
             voters[0].address,
             proposalId,
-            VoteType.Against,
+            VoteType.For,
             voters[0].rifAmount,
             reason,
           );
@@ -171,20 +180,63 @@ describe('Governance - Fungible tokens voting', () => {
             reason,
           );
       });
+    });
 
+    describe('Voting results', () => {
       it('total votes should equal voters rif amount square root sum', async () => {
         const againstVotes = await governor.getAgainstVotes(proposalId);
-        expect(againstVotes).to.equal(
-          Math.sqrt(voters[0].rifAmount) + Math.sqrt(voters[1].rifAmount),
-        );
+        expect(againstVotes).to.equal(Math.sqrt(voters[1].rifAmount));
         const forVotes = await governor.getForVotes(proposalId);
-        expect(forVotes).to.equal(Math.sqrt(voters[2].rifAmount));
-        console.log(forVotes, againstVotes);
+        expect(forVotes).to.equal(
+          Math.sqrt(voters[2].rifAmount) + Math.sqrt(voters[0].rifAmount),
+        );
       });
 
-      // TODO: Test fails. Figure out why
+      it('should calculate the quorum correctly', async () => {
+        const quorum = await governor.quorum(
+          (await hre.ethers.provider.getBlockNumber()) - 1,
+        );
+        expect(quorum).to.equal(Math.floor(Math.sqrt(totalSupply)));
+      });
+
+      it('quorum should be reached', async () => {
+        expect(await governor.quorumReached(proposalId)).to.be.true;
+      });
+
       it('voting should be successfull', async () => {
         expect(await governor.voteSucceeded(proposalId)).to.be.true;
+      });
+    });
+
+    describe('Proposal execution', () => {
+      it('should execute the Proposal and call its target contract', async () => {
+        const deadline = (
+          await governor.proposalDeadline(proposalId)
+        ).toNumber();
+        const currentBlock = await hre.ethers.provider.getBlockNumber();
+        await skipBlocks(deadline - currentBlock + 1);
+        const tx = governor.execute(
+          [rifVoteToken.address, governor.address],
+          [0, 0],
+          [proposalCalldata, setTargetCalldata],
+          proposalDescriptionHash,
+        );
+        await expect(tx)
+          .to.emit(proposalTarget, 'ProposalProcessed')
+          .withArgs(proposalId);
+      });
+
+      it("governor's RIF treasury tokens should be transferred to the team", async () => {
+        expect(await rifVoteToken.balanceOf(team.address)).to.equal(
+          treasuryRifAmount,
+        );
+        expect(await rifVoteToken.balanceOf(governor.address)).to.equal(0);
+      });
+
+      it('address of the proposal target should be set on the governor', async () => {
+        expect(await governor.proposalTarget()).to.equal(
+          proposalTarget.address,
+        );
       });
     });
   });
