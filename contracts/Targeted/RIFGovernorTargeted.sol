@@ -2,12 +2,12 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/Governor.sol';
-import './ProposalTarget.sol';
+import './RIFProposalTarget.sol';
 
-abstract contract GovernorTargeted is Governor {
-    IProposalTarget public proposalTarget;
+abstract contract RIFGovernorTargeted is Governor {
+    IRIFProposalTarget public proposalTarget;
 
-    function updateProposalTarget(IProposalTarget _newTarget)
+    function updateProposalTarget(IRIFProposalTarget _newTarget)
         public
         virtual
         onlyGovernance

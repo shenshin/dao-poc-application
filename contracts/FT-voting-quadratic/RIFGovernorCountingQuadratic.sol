@@ -10,7 +10,7 @@ import '../util/FixedPointMathLib.sol';
  * Iherit from GovernorVotes to have access to `token` in order to calculate quorum.
  * `quorum` is defined here as prescibed in the Governor docs.
  */
-abstract contract GovernorCountingQuadratic is GovernorVotes {
+abstract contract RIFGovernorCountingQuadratic is GovernorVotes {
     /**
      * @dev Supported vote types. Matches Governor Bravo ordering.
      */

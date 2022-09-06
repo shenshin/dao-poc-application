@@ -5,14 +5,14 @@ import '@openzeppelin/contracts/governance/Governor.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
-import '../Targeted/GovernorTargeted.sol';
+import '../Targeted/RIFGovernorTargeted.sol';
 
 contract RIFGovernorFT is
     Governor,
     GovernorCountingSimple,
     GovernorVotes,
     GovernorVotesQuorumFraction,
-    GovernorTargeted
+    RIFGovernorTargeted
 {
     constructor(IVotes _token)
         Governor('RIFGovernorFT')
@@ -57,7 +57,7 @@ contract RIFGovernorFT is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public payable override(Governor, GovernorTargeted) returns (uint256) {
+    ) public payable override(Governor, RIFGovernorTargeted) returns (uint256) {
         return super.execute(targets, values, calldatas, descriptionHash);
     }
 }

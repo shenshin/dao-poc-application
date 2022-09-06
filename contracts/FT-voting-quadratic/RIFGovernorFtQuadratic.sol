@@ -2,16 +2,16 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/Governor.sol';
-import './GovernorCountingQuadratic.sol';
+import './RIFGovernorCountingQuadratic.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
-import '../Targeted/GovernorTargeted.sol';
+import '../Targeted/RIFGovernorTargeted.sol';
 
 contract RIFGovernorFtQuadratic is
     Governor,
     GovernorVotes,
-    GovernorCountingQuadratic,
-    GovernorTargeted
+    RIFGovernorCountingQuadratic,
+    RIFGovernorTargeted
 {
     constructor(IVotes _token)
         Governor('RIFGovernorFtQuadratic')
@@ -45,7 +45,7 @@ contract RIFGovernorFtQuadratic is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public payable override(Governor, GovernorTargeted) returns (uint256) {
+    ) public payable override(Governor, RIFGovernorTargeted) returns (uint256) {
         return super.execute(targets, values, calldatas, descriptionHash);
     }
 }

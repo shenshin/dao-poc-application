@@ -38,7 +38,10 @@ describe('Governance - Fungible tokens voting', () => {
       'RIFGovernorFtQuadratic',
       rifVoteToken.address,
     );
-    proposalTarget = await deployContract('ProposalTarget', governor.address);
+    proposalTarget = await deployContract(
+      'RIFProposalTarget',
+      governor.address,
+    );
   });
 
   describe('RIFVote upon depoyment', () => {
