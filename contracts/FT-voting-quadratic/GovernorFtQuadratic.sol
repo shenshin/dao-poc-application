@@ -2,19 +2,19 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/Governor.sol';
-import './RIFGovernorCountingQuadratic.sol';
+import './GovernorCountingQuadratic.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
-import '../Targeted/RIFGovernorTargeted.sol';
+import '../Targeted/GovernorTargeted.sol';
 
-contract RIFGovernorFtQuadratic is
+contract GovernorFtQuadratic is
     Governor,
     GovernorVotes,
-    RIFGovernorCountingQuadratic,
-    RIFGovernorTargeted
+    GovernorCountingQuadratic,
+    GovernorTargeted
 {
     constructor(IVotes _token)
-        Governor('RIFGovernorFtQuadratic')
+        Governor('GovernorFtQuadratic')
         GovernorVotes(_token)
     {}
 
@@ -31,21 +31,13 @@ contract RIFGovernorFtQuadratic is
         return 1;
     }
 
-    function quorumReached(uint256 proposalId) external view returns (bool) {
-        return _quorumReached(proposalId);
-    }
-
-    function voteSucceeded(uint256 proposalId) external view returns (bool) {
-        return _voteSucceeded(proposalId);
-    }
-
     // The following functions are overrides required by Solidity.
     function execute(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) public payable override(Governor, RIFGovernorTargeted) returns (uint256) {
+    ) public payable override(Governor, GovernorTargeted) returns (uint256) {
         return super.execute(targets, values, calldatas, descriptionHash);
     }
 }

@@ -25,6 +25,17 @@ describe('Governance - Fungible tokens voting', () => {
     Abstain: 2,
   };
 
+  const ProposalState = {
+    Pending: 0,
+    Active: 1,
+    Canceled: 2,
+    Defeated: 3,
+    Succeeded: 4,
+    Queued: 5,
+    Expired: 6,
+    Executed: 7,
+  };
+
   before(async () => {
     const signers = await hre.ethers.getSigners();
     [deployer, team] = signers;
@@ -33,15 +44,12 @@ describe('Governance - Fungible tokens voting', () => {
     [1, 100, 10000].forEach((amount, i) => {
       voters[i].rifAmount = amount;
     });
-    rifVoteToken = await deployContract('RIFVoteQuadraticToken', totalSupply);
+    rifVoteToken = await deployContract('QuadraticVoteToken', totalSupply);
     governor = await deployContract(
-      'RIFGovernorFtQuadratic',
+      'GovernorFtQuadratic',
       rifVoteToken.address,
     );
-    proposalTarget = await deployContract(
-      'RIFProposalTarget',
-      governor.address,
-    );
+    proposalTarget = await deployContract('ProposalTarget', governor.address);
   });
 
   describe('RIFVote upon depoyment', () => {
@@ -187,10 +195,11 @@ describe('Governance - Fungible tokens voting', () => {
 
     describe('Voting results', () => {
       it('total votes should equal voters rif amount square root sum', async () => {
-        const againstVotes = await governor.getAgainstVotes(proposalId);
-        expect(againstVotes).to.equal(Math.sqrt(voters[1].rifAmount));
-        const forVotes = await governor.getForVotes(proposalId);
-        expect(forVotes).to.equal(
+        const proposalVotes = await governor.proposalVotes(proposalId);
+        expect(proposalVotes.againstVotes).to.equal(
+          Math.sqrt(voters[1].rifAmount),
+        );
+        expect(proposalVotes.forVotes).to.equal(
           Math.sqrt(voters[2].rifAmount) + Math.sqrt(voters[0].rifAmount),
         );
       });
@@ -202,22 +211,20 @@ describe('Governance - Fungible tokens voting', () => {
         expect(quorum).to.equal(Math.floor(Math.sqrt(totalSupply)));
       });
 
-      it('quorum should be reached', async () => {
-        expect(await governor.quorumReached(proposalId)).to.be.true;
-      });
-
-      it('voting should be successfull', async () => {
-        expect(await governor.voteSucceeded(proposalId)).to.be.true;
-      });
-    });
-
-    describe('Proposal execution', () => {
-      it('should execute the Proposal and call its target contract', async () => {
+      it('Proposal should be succeeded', async () => {
         const deadline = (
           await governor.proposalDeadline(proposalId)
         ).toNumber();
         const currentBlock = await hre.ethers.provider.getBlockNumber();
         await skipBlocks(deadline - currentBlock + 1);
+        expect(await governor.state(proposalId)).to.equal(
+          ProposalState.Succeeded,
+        );
+      });
+    });
+
+    describe('Proposal execution', () => {
+      it('should execute the Proposal and call its target contract', async () => {
         const tx = governor.execute(
           [rifVoteToken.address, governor.address],
           [0, 0],

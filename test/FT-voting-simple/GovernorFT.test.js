@@ -21,17 +21,31 @@ describe('Governance - Fungible tokens voting', () => {
   const voterRifAmount = hre.ethers.BigNumber.from(100);
   const treasuryRifAmount = hre.ethers.BigNumber.from(700);
 
+  const VoteType = {
+    Against: 0,
+    For: 1,
+    Abstain: 2,
+  };
+
+  const ProposalState = {
+    Pending: 0,
+    Active: 1,
+    Canceled: 2,
+    Defeated: 3,
+    Succeeded: 4,
+    Queued: 5,
+    Expired: 6,
+    Executed: 7,
+  };
+
   before(async () => {
     const signers = await hre.ethers.getSigners();
     [deployer, team] = signers;
     voters = signers.slice(2, 5);
     rifToken = await deployContract('RIFToken', totalRifSupply);
     rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
-    governor = await deployContract('RIFGovernorFT', rifVoteToken.address);
-    proposalTarget = await deployContract(
-      'RIFProposalTarget',
-      governor.address,
-    );
+    governor = await deployContract('GovernorFT', rifVoteToken.address);
+    proposalTarget = await deployContract('ProposalTarget', governor.address);
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -215,11 +229,6 @@ describe('Governance - Fungible tokens voting', () => {
   });
 
   describe('Voting', () => {
-    const VoteType = {
-      Against: 0,
-      For: 1,
-      Abstain: 2,
-    };
     it('voters should not have voted yet', async () => {
       const results = await Promise.all(
         voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
@@ -272,18 +281,16 @@ describe('Governance - Fungible tokens voting', () => {
   });
 
   describe('Proposal execution', () => {
-    it('quorum should be reached', async () => {
-      expect(await governor.quorumReached(proposalId)).to.be.true;
-    });
-
-    it('voting should be successfull', async () => {
-      expect(await governor.voteSucceeded(proposalId)).to.be.true;
-    });
-
-    it('should execute the Proposal and call its target contract', async () => {
+    it('Proposal should be succeeded', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
+      expect(await governor.state(proposalId)).to.equal(
+        ProposalState.Succeeded,
+      );
+    });
+
+    it('should execute the Proposal and call its target contract', async () => {
       const tx = governor.execute(
         [rifToken.address, governor.address],
         [0, 0],

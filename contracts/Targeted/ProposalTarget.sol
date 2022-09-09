@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/IGovernor.sol';
 
-interface IRIFProposalTarget {
+interface IProposalTarget {
     event ProposalProcessed(uint256 proposalId);
 
     function setGovernor(IGovernor _governor) external;
@@ -11,7 +11,7 @@ interface IRIFProposalTarget {
     function onProposalExecution(uint256 _proposalId) external;
 }
 
-contract RIFProposalTarget is IRIFProposalTarget {
+contract ProposalTarget is IProposalTarget {
     IGovernor public governor;
 
     modifier onlyGovernor() {

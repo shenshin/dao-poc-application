@@ -1,16 +1,16 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.9;
+// SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v4.6.0) (governance/extensions/GovernorCountingSimple.sol)
 
-import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
+pragma solidity ^0.8.0;
 
-import '../util/FixedPointMathLib.sol';
+import '@openzeppelin/contracts/governance/Governor.sol';
 
 /**
- * @dev Extension of {Governor} for quadratic (sqrt), 3 options, vote counting.
- * Iherit from GovernorVotes to have access to `token` in order to calculate quorum.
- * `quorum` is defined here as prescibed in the Governor docs.
+ * @dev Extension of {Governor} for simple, 3 options, vote counting.
+ *
+ * _Available since v4.3._
  */
-abstract contract RIFGovernorCountingQuadratic is GovernorVotes {
+abstract contract GovernorCountingSimple is Governor {
     /**
      * @dev Supported vote types. Matches Governor Bravo ordering.
      */
@@ -27,7 +27,12 @@ abstract contract RIFGovernorCountingQuadratic is GovernorVotes {
         mapping(address => bool) hasVoted;
     }
 
-    mapping(uint256 => ProposalVote) private _proposalVotes;
+    /**
+     * @dev Aleks Shenshin has modified OZ {_proposalVotes} visibility
+     * from `private` to `internal` to be able to inherit from this
+     * module and override functions that use {_proposalVotes}
+     */
+    mapping(uint256 => ProposalVote) internal _proposalVotes;
 
     /**
      * @dev See {IGovernor-COUNTING_MODE}.
@@ -77,43 +82,6 @@ abstract contract RIFGovernorCountingQuadratic is GovernorVotes {
         );
     }
 
-    function quorum(uint256 blockNumber)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
-        return FixedPointMathLib.sqrt(token.getPastTotalSupply(blockNumber));
-    }
-
-    function getForVotes(uint256 _proposalId)
-        external
-        view
-        virtual
-        returns (uint256)
-    {
-        return _proposalVotes[_proposalId].forVotes;
-    }
-
-    function getAgainstVotes(uint256 _proposalId)
-        external
-        view
-        virtual
-        returns (uint256)
-    {
-        return _proposalVotes[_proposalId].againstVotes;
-    }
-
-    function getAbstainVotes(uint256 _proposalId)
-        external
-        view
-        virtual
-        returns (uint256)
-    {
-        return _proposalVotes[_proposalId].abstainVotes;
-    }
-
     /**
      * @dev See {Governor-_quorumReached}.
      */
@@ -160,20 +128,18 @@ abstract contract RIFGovernorCountingQuadratic is GovernorVotes {
 
         require(
             !proposalvote.hasVoted[account],
-            'GovernorCountingQuadratic: vote already cast'
+            'GovernorVotingSimple: vote already cast'
         );
         proposalvote.hasVoted[account] = true;
 
         if (support == uint8(VoteType.Against)) {
-            proposalvote.againstVotes += FixedPointMathLib.sqrt(weight);
+            proposalvote.againstVotes += weight;
         } else if (support == uint8(VoteType.For)) {
-            proposalvote.forVotes += FixedPointMathLib.sqrt(weight);
+            proposalvote.forVotes += weight;
         } else if (support == uint8(VoteType.Abstain)) {
-            proposalvote.abstainVotes += FixedPointMathLib.sqrt(weight);
+            proposalvote.abstainVotes += weight;
         } else {
-            revert(
-                'GovernorCountingQuadratic: invalid value for enum VoteType'
-            );
+            revert('GovernorVotingSimple: invalid value for enum VoteType');
         }
     }
 }
