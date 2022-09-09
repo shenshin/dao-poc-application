@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const hre = require('hardhat');
 const { deployContract, skipBlocks } = require('../../util');
 
-describe('Governance - Fungible tokens voting', () => {
+describe('Governance - Successfull Fungible tokens voting', () => {
   let deployer;
   let voters;
   let team;
@@ -198,20 +198,6 @@ describe('Governance - Fungible tokens voting', () => {
       );
     });
 
-    it.skip('someone without voting power should not be able to create a proposal', async () => {
-      const tx = governor
-        .connect(deployer)
-        .propose(
-          [rifToken.address, governor.address],
-          [0, 0],
-          [proposalCalldata, setTargetCalldata],
-          proposalDescription,
-        );
-      await expect(tx).to.be.revertedWith(
-        'proposer votes below proposal threshold',
-      );
-    });
-
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
       const tx = await governor.connect(voters[0]).propose(
@@ -277,6 +263,12 @@ describe('Governance - Fungible tokens voting', () => {
           voterRifAmount,
           reason,
         );
+    });
+    it('voters should have finished voting', async () => {
+      const results = await Promise.all(
+        voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
+      );
+      results.forEach((hasVoted) => expect(hasVoted).to.be.true);
     });
   });
 
@@ -347,14 +339,6 @@ describe('Governance - Fungible tokens voting', () => {
         voters.map((voter) => rifToken.balanceOf(voter.address)),
       );
       balances.forEach((balance) => expect(balance).to.equal(voterRifAmount));
-    });
-  });
-
-  describe('Calling proposal target smart contract', () => {
-    it(`target should be only called by the governor`, async () => {
-      await expect(
-        proposalTarget.onProposalExecution(proposalId),
-      ).to.be.revertedWith('can be called only by the governor');
     });
   });
 });
