@@ -2,36 +2,58 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/Governor.sol';
+import '@openzeppelin/contracts/governance/extensions/GovernorSettings.sol';
 import './GovernorCountingQuadratic.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
 import '@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol';
-import '../Targeted/GovernorTargeted.sol';
+import '../extensions/GovernorTargeted.sol';
 
 contract GovernorFtQuadratic is
     Governor,
+    GovernorSettings,
     GovernorVotes,
     GovernorCountingQuadratic,
     GovernorTargeted
 {
     constructor(IVotes _token)
         Governor('GovernorFtQuadratic')
+        GovernorSettings(
+            0, /* voting delay, blocks */
+            18, /* voting period, blocks */
+            1 /* proposal threshold, votes */
+        )
         GovernorVotes(_token)
     {}
 
-    function votingDelay() public pure override returns (uint256) {
-        return 0; //  blocks
-    }
-
-    function votingPeriod() public pure override returns (uint256) {
-        return 16; // blocks
-    }
-
-    // should have at least 1 vote to be able to create proposals
-    function proposalThreshold() public pure override returns (uint256) {
-        return 1;
-    }
-
     // The following functions are overrides required by Solidity.
+
+    function votingDelay()
+        public
+        view
+        override(IGovernor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.votingDelay();
+    }
+
+    function votingPeriod()
+        public
+        view
+        override(IGovernor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.votingPeriod();
+    }
+
+    function proposalThreshold()
+        public
+        view
+        override(Governor, GovernorSettings)
+        returns (uint256)
+    {
+        return super.proposalThreshold();
+    }
+
     function execute(
         address[] memory targets,
         uint256[] memory values,

@@ -1,11 +1,18 @@
 require('@nomicfoundation/hardhat-toolbox');
+require('hardhat-contract-sizer');
 const { mnemonic } = require('./.secret.json');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-    version: '0.8.9',
-    optimizer: { enabled: true, runs: 200 },
+    compilers: [
+      {
+        version: '0.8.9',
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+        },
+      },
+    ],
   },
   networks: {
     hardhat: {},
@@ -31,5 +38,10 @@ module.exports = {
   },
   mocha: {
     timeout: 6000000,
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
   },
 };
