@@ -2,8 +2,7 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
-import '../FT-voting-simple/GovernorCountingSimple.sol';
-
+import './GovernorCountingSimple.sol';
 import '../util/FixedPointMathLib.sol';
 
 /**
