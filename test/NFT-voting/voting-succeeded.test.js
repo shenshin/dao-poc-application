@@ -3,7 +3,6 @@ const hre = require('hardhat');
 const { deployContract, skipBlocks, getSigners } = require('../../util');
 
 describe('Governance - Successfull Fungible tokens voting', () => {
-  let deployer;
   let voters;
   let votersFor;
   let votersAgainst;
@@ -38,7 +37,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
   };
 
   before(async () => {
-    [deployer, ...voters] = getSigners(9);
+    voters = getSigners(8);
     votersFor = voters.slice(0, 3);
     votersAbstain = voters.slice(3, 6);
     votersAgainst = voters.slice(6);
@@ -233,25 +232,16 @@ describe('Governance - Successfull Fungible tokens voting', () => {
     });
 
     describe('Proposal execution', () => {
-      it('should execute the Proposal and call its target contract', async () => {
+      it('should execute the proposal and call its target contract', async () => {
         const tx = governor.execute(...proposal, proposalDescriptionHash);
         await expect(tx)
           .to.emit(proposalTarget, 'ProposalProcessed')
           .withArgs(proposalId);
       });
 
-      /* it("governor's RIF treasury tokens should be transferred to the team", async () => {
-        expect(await rifVoteToken.balanceOf(team.address)).to.equal(
-          treasuryRifAmount,
-        );
-        expect(await rifVoteToken.balanceOf(governor.address)).to.equal(0);
+      it('voting period should be updated on the governor', async () => {
+        expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
       });
-
-      it('address of the proposal target should be set on the governor', async () => {
-        expect(await governor.proposalTarget()).to.equal(
-          proposalTarget.address,
-        );
-      }); */
     });
   });
 });
