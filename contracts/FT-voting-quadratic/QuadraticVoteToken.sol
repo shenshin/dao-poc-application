@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol';
 
-contract RIFVoteQuadraticToken is ERC20, ERC20Permit, ERC20Votes {
+contract QuadraticVoteToken is ERC20, ERC20Permit, ERC20Votes {
     constructor(uint256 _totalSupply)
         ERC20('RIFVoteToken', 'RIFV')
         ERC20Permit('RIFVoteToken')

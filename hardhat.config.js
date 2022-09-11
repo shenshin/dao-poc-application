@@ -1,11 +1,18 @@
 require('@nomicfoundation/hardhat-toolbox');
+require('hardhat-contract-sizer');
 const { mnemonic } = require('./.secret.json');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-    version: '0.8.9',
-    optimizer: { enabled: true, runs: 200 },
+    compilers: [
+      {
+        version: '0.8.9',
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+        },
+      },
+    ],
   },
   networks: {
     hardhat: {},
@@ -22,8 +29,8 @@ module.exports = {
         path: "m/44'/60'/0'/0",
       },
     },
-    ethereum: {
-      url: `https://mainnet.infura.io/v3/637a166b44254d19830b8b60ea60a67b`,
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/637a166b44254d19830b8b60ea60a67b`,
       accounts: {
         mnemonic,
       },
@@ -31,5 +38,10 @@ module.exports = {
   },
   mocha: {
     timeout: 6000000,
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
   },
 };
