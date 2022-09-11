@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const hre = require('hardhat');
 const { deployContract, skipBlocks, getSigners } = require('../../util');
 
-describe('Governance - Successfull NFT voting', () => {
+describe('Governance - Defeated NFT voting', () => {
   let voters;
   let votersFor;
   let votersAgainst;
@@ -17,6 +17,7 @@ describe('Governance - Successfull NFT voting', () => {
   let proposalDescriptionHash;
   let newVotingPeriodCalldata;
   let setTargetCalldata;
+  const currentVotingPeriod = 18; // blocks
   const newVotingPeriod = 33;
 
   const VoteType = {
@@ -38,9 +39,9 @@ describe('Governance - Successfull NFT voting', () => {
 
   before(async () => {
     voters = getSigners(8);
-    votersFor = voters.slice(0, 3);
-    votersAbstain = voters.slice(3, 6);
-    votersAgainst = voters.slice(6);
+    votersFor = voters.slice(0, 2);
+    votersAbstain = voters.slice(2, 5);
+    votersAgainst = voters.slice(5);
     rnsVoteToken = await deployContract('RNSVote');
     governor = await deployContract('GovernorNFT', rnsVoteToken.address);
     proposalTarget = await deployContract('ProposalTarget', governor.address);
@@ -209,8 +210,8 @@ describe('Governance - Successfull NFT voting', () => {
   describe('Voting results', () => {
     it('it should store the given votes', async () => {
       const proposalVotes = await governor.proposalVotes(proposalId);
-      expect(proposalVotes.againstVotes).to.equal(2);
-      expect(proposalVotes.forVotes).to.equal(3);
+      expect(proposalVotes.againstVotes).to.equal(3);
+      expect(proposalVotes.forVotes).to.equal(2);
       expect(proposalVotes.abstainVotes).to.equal(3);
     });
 
@@ -222,26 +223,22 @@ describe('Governance - Successfull NFT voting', () => {
       expect(quorum).to.equal(Math.floor(voters.length / 100) * 4);
     });
 
-    it('Proposal should be succeeded', async () => {
+    it('Proposal should be defeated', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
-      expect(await governor.state(proposalId)).to.equal(
-        ProposalState.Succeeded,
-      );
+      expect(await governor.state(proposalId)).to.equal(ProposalState.Defeated);
     });
   });
 
   describe('Proposal execution', () => {
-    it('should execute the proposal and call its target contract', async () => {
+    it('should not be able to execute the defeated Proposal', async () => {
       const tx = governor.execute(...proposal, proposalDescriptionHash);
-      await expect(tx)
-        .to.emit(proposalTarget, 'ProposalProcessed')
-        .withArgs(proposalId);
+      await expect(tx).to.be.revertedWith('Governor: proposal not successful');
     });
 
-    it('voting period should be updated on the governor', async () => {
-      expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
+    it('voting period should not be updated on the governor', async () => {
+      expect(await governor.votingPeriod()).to.equal(currentVotingPeriod);
     });
   });
 });
