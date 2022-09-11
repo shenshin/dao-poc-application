@@ -66,18 +66,14 @@ describe('Governance - Defeated NFT voting', () => {
     });
 
     it('RNSVote token holders should self-delegate the voting power', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rnsVoteToken.connect(voter).delegate(voter.address),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(rnsVoteToken.connect(voter).delegate(voter.address))
             .to.emit(rnsVoteToken, 'DelegateChanged')
             .withArgs(
-              tx.voter.address,
+              voter.address,
               hre.ethers.constants.AddressZero,
-              tx.voter.address,
+              voter.address,
             ),
         ),
       );
@@ -162,7 +158,6 @@ describe('Governance - Defeated NFT voting', () => {
     });
 
     it('Voters should vote abstain', async () => {
-      await skipBlocks(1);
       const reason = '';
       const votePower = 1;
       await Promise.all(
@@ -181,7 +176,6 @@ describe('Governance - Defeated NFT voting', () => {
     });
 
     it('Voters should vote against', async () => {
-      await skipBlocks(1);
       const reason = '';
       const votePower = 1;
       await Promise.all(
@@ -210,9 +204,9 @@ describe('Governance - Defeated NFT voting', () => {
   describe('Voting results', () => {
     it('it should store the given votes', async () => {
       const proposalVotes = await governor.proposalVotes(proposalId);
-      expect(proposalVotes.againstVotes).to.equal(3);
-      expect(proposalVotes.forVotes).to.equal(2);
-      expect(proposalVotes.abstainVotes).to.equal(3);
+      expect(proposalVotes.againstVotes).to.equal(votersAgainst.length);
+      expect(proposalVotes.forVotes).to.equal(votersFor.length);
+      expect(proposalVotes.abstainVotes).to.equal(votersAbstain.length);
     });
 
     it('should calculate the quorum correctly', async () => {
