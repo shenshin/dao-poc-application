@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { deployContract, skipBlocks } = require('../../util');
+const { ProposalState, VoteType } = require('../constants.js');
 
 describe('Governance - Defeated Fungible tokens quadratic voting', () => {
   let deployer;
@@ -19,23 +20,6 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
 
   const totalSupply = 10301;
   const treasuryRifAmount = 200;
-
-  const VoteType = {
-    Against: 0,
-    For: 1,
-    Abstain: 2,
-  };
-
-  const ProposalState = {
-    Pending: 0,
-    Active: 1,
-    Canceled: 2,
-    Defeated: 3,
-    Succeeded: 4,
-    Queued: 5,
-    Expired: 6,
-    Executed: 7,
-  };
 
   const votersBalances = [1, 100, 10000];
 

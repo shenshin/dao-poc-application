@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { deployContract, skipBlocks, getSigners } = require('../../util');
+const { ProposalState, VoteType } = require('../constants.js');
 
 describe('Governance - Defeated NFT voting', () => {
   let voters;
@@ -17,25 +18,9 @@ describe('Governance - Defeated NFT voting', () => {
   let proposalDescriptionHash;
   let newVotingPeriodCalldata;
   let setTargetCalldata;
+
   const currentVotingPeriod = 18; // blocks
   const newVotingPeriod = 33;
-
-  const VoteType = {
-    Against: 0,
-    For: 1,
-    Abstain: 2,
-  };
-
-  const ProposalState = {
-    Pending: 0,
-    Active: 1,
-    Canceled: 2,
-    Defeated: 3,
-    Succeeded: 4,
-    Queued: 5,
-    Expired: 6,
-    Executed: 7,
-  };
 
   before(async () => {
     voters = getSigners(8);

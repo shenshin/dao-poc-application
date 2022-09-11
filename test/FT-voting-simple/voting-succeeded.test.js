@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { deployContract, skipBlocks } = require('../../util');
+const { ProposalState, VoteType } = require('../constants.js');
 
 describe('Governance - Successfull Fungible tokens voting', () => {
   let deployer;
@@ -18,26 +19,9 @@ describe('Governance - Successfull Fungible tokens voting', () => {
   let proposalDescriptionHash;
   let setTargetCalldata;
 
-  const totalRifSupply = hre.ethers.BigNumber.from(1000);
-  const voterRifAmount = hre.ethers.BigNumber.from(100);
-  const treasuryRifAmount = hre.ethers.BigNumber.from(700);
-
-  const VoteType = {
-    Against: 0,
-    For: 1,
-    Abstain: 2,
-  };
-
-  const ProposalState = {
-    Pending: 0,
-    Active: 1,
-    Canceled: 2,
-    Defeated: 3,
-    Succeeded: 4,
-    Queued: 5,
-    Expired: 6,
-    Executed: 7,
-  };
+  const totalRifSupply = 1000;
+  const voterRifAmount = 100;
+  const treasuryRifAmount = 700;
 
   before(async () => {
     const signers = await hre.ethers.getSigners();
