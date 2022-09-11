@@ -10,6 +10,7 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
   let governor;
   let proposalTarget;
   // proposal
+  let proposal;
   let proposalId;
   let proposalCalldata;
   let proposalDescription;
@@ -77,18 +78,14 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
     });
 
     it('voters should delegate voting power', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken.connect(voter).delegate(voter.address),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(rifVoteToken.connect(voter).delegate(voter.address))
             .to.emit(rifVoteToken, 'DelegateChanged')
             .withArgs(
-              tx.voter.address,
+              voter.address,
               hre.ethers.constants.AddressZero,
-              tx.voter.address,
+              voter.address,
             ),
         ),
       );
@@ -102,8 +99,9 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
 
       proposalDescription = 'Proposal #1: Give a grant to proposer';
       // calculating keccak256 hash of th proposal description
-      proposalDescriptionHash = hre.ethers.utils.keccak256(
-        hre.ethers.utils.toUtf8Bytes(proposalDescription),
+      proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
+        ['string'],
+        [proposalDescription],
       );
       // encoding RIF token `transfer` function call
       proposalCalldata = rifVoteToken.interface.encodeFunctionData('transfer', [
@@ -115,23 +113,23 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
         'updateProposalTarget',
         [proposalTarget.address],
       );
-      // get proposal ID before creating the proposal
-      proposalId = await governor.hashProposal(
+      proposal = [
         [rifVoteToken.address, governor.address],
         [0, 0],
         [proposalCalldata, setTargetCalldata],
+      ];
+      // get proposal ID before creating the proposal
+      proposalId = await governor.hashProposal(
+        ...proposal,
         proposalDescriptionHash,
       );
     });
 
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
-      const tx = await governor.connect(voters[0]).propose(
-        [rifVoteToken.address, governor.address], // which address to send tx to on proposal execution
-        [0, 0], // amount of Ether / RBTC to supply
-        [proposalCalldata, setTargetCalldata], // encoded function call
-        proposalDescription,
-      );
+      const tx = await governor
+        .connect(voters[0])
+        .propose(...proposal, proposalDescription);
       const receipt = await tx.wait();
       const { args } = receipt.events.find(
         (e) => e.event === 'ProposalCreated',
@@ -225,12 +223,7 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
 
   describe('Proposal execution', () => {
     it('should not be able to execute the defeated Proposal', async () => {
-      const tx = governor.execute(
-        [rifVoteToken.address, governor.address],
-        [0, 0],
-        [proposalCalldata, setTargetCalldata],
-        proposalDescriptionHash,
-      );
+      const tx = governor.execute(...proposal, proposalDescriptionHash);
       await expect(tx).to.be.revertedWith('Governor: proposal not successful');
     });
 

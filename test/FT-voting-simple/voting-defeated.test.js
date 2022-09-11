@@ -11,6 +11,7 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   let governor;
   let proposalTarget;
   // proposal
+  let proposal;
   let proposalId;
   let proposalCalldata;
   let proposalDescription;
@@ -81,17 +82,15 @@ describe('Governance - Defeated Fungible tokens voting', () => {
 
   describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
     it('voters should approve the RIF allowance for RIFVote', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifToken
-          .connect(voter)
-          .approve(rifVoteToken.address, voterRifAmount),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(
+            rifToken
+              .connect(voter)
+              .approve(rifVoteToken.address, voterRifAmount),
+          )
             .to.emit(rifToken, 'Approval')
-            .withArgs(tx.voter.address, rifVoteToken.address, voterRifAmount),
+            .withArgs(voter.address, rifVoteToken.address, voterRifAmount),
         ),
       );
     });
@@ -108,19 +107,17 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     });
 
     it('voters should deposit underlying tokens and mint the corresponding number of wrapped tokens', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken
-          .connect(voter)
-          .depositFor(voter.address, voterRifAmount),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(
+            rifVoteToken
+              .connect(voter)
+              .depositFor(voter.address, voterRifAmount),
+          )
             .to.emit(rifVoteToken, 'Transfer')
             .withArgs(
               hre.ethers.constants.AddressZero,
-              tx.voter.address,
+              voter.address,
               voterRifAmount,
             ),
         ),
@@ -142,18 +139,14 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     });
 
     it('RIFVote token holders should self-delegate the voting power', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken.connect(voter).delegate(voter.address),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(rifVoteToken.connect(voter).delegate(voter.address))
             .to.emit(rifVoteToken, 'DelegateChanged')
             .withArgs(
-              tx.voter.address,
+              voter.address,
               hre.ethers.constants.AddressZero,
-              tx.voter.address,
+              voter.address,
             ),
         ),
       );
@@ -176,8 +169,9 @@ describe('Governance - Defeated Fungible tokens voting', () => {
 
       proposalDescription = 'Proposal #1: Give a grant to proposer';
       // calculating keccak256 hash of th proposal description
-      proposalDescriptionHash = hre.ethers.utils.keccak256(
-        hre.ethers.utils.toUtf8Bytes(proposalDescription),
+      proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
+        ['string'],
+        [proposalDescription],
       );
       // encoding RIF token `transfer` function call
       proposalCalldata = rifToken.interface.encodeFunctionData('transfer', [
@@ -189,11 +183,14 @@ describe('Governance - Defeated Fungible tokens voting', () => {
         'updateProposalTarget',
         [proposalTarget.address],
       );
-      // get proposal ID before creating the proposal
-      proposalId = await governor.hashProposal(
+      proposal = [
         [rifToken.address, governor.address],
         [0, 0],
         [proposalCalldata, setTargetCalldata],
+      ];
+      // get proposal ID before creating the proposal
+      proposalId = await governor.hashProposal(
+        ...proposal,
         proposalDescriptionHash,
       );
     });
@@ -201,12 +198,7 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     it('someone without voting power should not be able to create a proposal', async () => {
       const tx = governor
         .connect(deployer)
-        .propose(
-          [rifToken.address, governor.address],
-          [0, 0],
-          [proposalCalldata, setTargetCalldata],
-          proposalDescription,
-        );
+        .propose(...proposal, proposalDescription);
       await expect(tx).to.be.revertedWith(
         'Governor: proposer votes below proposal threshold',
       );
@@ -214,12 +206,9 @@ describe('Governance - Defeated Fungible tokens voting', () => {
 
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
-      const tx = await governor.connect(voters[0]).propose(
-        [rifToken.address, governor.address], // which address to send tx to on proposal execution
-        [0, 0], // amount of Ether / RBTC to supply
-        [proposalCalldata, setTargetCalldata], // encoded function call
-        proposalDescription,
-      );
+      const tx = await governor
+        .connect(voters[0])
+        .propose(...proposal, proposalDescription);
       const receipt = await tx.wait();
       const { args } = receipt.events.find(
         (e) => e.event === 'ProposalCreated',
@@ -297,12 +286,7 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     });
 
     it('should not be able to execute the defeated Proposal', async () => {
-      const tx = governor.execute(
-        [rifToken.address, governor.address],
-        [0, 0],
-        [proposalCalldata, setTargetCalldata],
-        proposalDescriptionHash,
-      );
+      const tx = governor.execute(...proposal, proposalDescriptionHash);
       await expect(tx).to.be.revertedWith('Governor: proposal not successful');
     });
 
@@ -329,18 +313,16 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     });
 
     it('should unwrap governance tokens to obtain regular tokens', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken
-          .connect(voter)
-          .withdrawTo(voter.address, voterRifAmount),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(
+            rifVoteToken
+              .connect(voter)
+              .withdrawTo(voter.address, voterRifAmount),
+          )
             .to.emit(rifVoteToken, 'Transfer')
             .withArgs(
-              tx.voter.address,
+              voter.address,
               hre.ethers.constants.AddressZero,
               voterRifAmount,
             ),
