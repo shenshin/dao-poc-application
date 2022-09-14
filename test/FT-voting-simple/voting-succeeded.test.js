@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { deployContract, skipBlocks } = require('../../util');
+const { ProposalState, VoteType } = require('../constants.js');
 
 describe('Governance - Successfull Fungible tokens voting', () => {
   let deployer;
@@ -11,32 +12,16 @@ describe('Governance - Successfull Fungible tokens voting', () => {
   let governor;
   let proposalTarget;
   // proposal
+  let proposal;
   let proposalId;
   let proposalCalldata;
   let proposalDescription;
   let proposalDescriptionHash;
   let setTargetCalldata;
 
-  const totalRifSupply = hre.ethers.BigNumber.from(1000);
-  const voterRifAmount = hre.ethers.BigNumber.from(100);
-  const treasuryRifAmount = hre.ethers.BigNumber.from(700);
-
-  const VoteType = {
-    Against: 0,
-    For: 1,
-    Abstain: 2,
-  };
-
-  const ProposalState = {
-    Pending: 0,
-    Active: 1,
-    Canceled: 2,
-    Defeated: 3,
-    Succeeded: 4,
-    Queued: 5,
-    Expired: 6,
-    Executed: 7,
-  };
+  const totalRifSupply = 1000;
+  const voterRifAmount = 100;
+  const treasuryRifAmount = 700;
 
   before(async () => {
     const signers = await hre.ethers.getSigners();
@@ -81,17 +66,15 @@ describe('Governance - Successfull Fungible tokens voting', () => {
 
   describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
     it('voters should approve the RIF allowance for RIFVote', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifToken
-          .connect(voter)
-          .approve(rifVoteToken.address, voterRifAmount),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(
+            rifToken
+              .connect(voter)
+              .approve(rifVoteToken.address, voterRifAmount),
+          )
             .to.emit(rifToken, 'Approval')
-            .withArgs(tx.voter.address, rifVoteToken.address, voterRifAmount),
+            .withArgs(voter.address, rifVoteToken.address, voterRifAmount),
         ),
       );
     });
@@ -108,19 +91,17 @@ describe('Governance - Successfull Fungible tokens voting', () => {
     });
 
     it('voters should deposit underlying tokens and mint the corresponding number of wrapped tokens', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken
-          .connect(voter)
-          .depositFor(voter.address, voterRifAmount),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(
+            rifVoteToken
+              .connect(voter)
+              .depositFor(voter.address, voterRifAmount),
+          )
             .to.emit(rifVoteToken, 'Transfer')
             .withArgs(
               hre.ethers.constants.AddressZero,
-              tx.voter.address,
+              voter.address,
               voterRifAmount,
             ),
         ),
@@ -142,18 +123,14 @@ describe('Governance - Successfull Fungible tokens voting', () => {
     });
 
     it('RIFVote token holders should self-delegate the voting power', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken.connect(voter).delegate(voter.address),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(rifVoteToken.connect(voter).delegate(voter.address))
             .to.emit(rifVoteToken, 'DelegateChanged')
             .withArgs(
-              tx.voter.address,
+              voter.address,
               hre.ethers.constants.AddressZero,
-              tx.voter.address,
+              voter.address,
             ),
         ),
       );
@@ -176,8 +153,9 @@ describe('Governance - Successfull Fungible tokens voting', () => {
 
       proposalDescription = 'Proposal #1: Give a grant to proposer';
       // calculating keccak256 hash of th proposal description
-      proposalDescriptionHash = hre.ethers.utils.keccak256(
-        hre.ethers.utils.toUtf8Bytes(proposalDescription),
+      proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
+        ['string'],
+        [proposalDescription],
       );
       // encoding RIF token `transfer` function call
       proposalCalldata = rifToken.interface.encodeFunctionData('transfer', [
@@ -189,23 +167,23 @@ describe('Governance - Successfull Fungible tokens voting', () => {
         'updateProposalTarget',
         [proposalTarget.address],
       );
-      // get proposal ID before creating the proposal
-      proposalId = await governor.hashProposal(
+      proposal = [
         [rifToken.address, governor.address],
         [0, 0],
         [proposalCalldata, setTargetCalldata],
+      ];
+      // get proposal ID before creating the proposal
+      proposalId = await governor.hashProposal(
+        ...proposal,
         proposalDescriptionHash,
       );
     });
 
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
-      const tx = await governor.connect(voters[0]).propose(
-        [rifToken.address, governor.address], // which address to send tx to on proposal execution
-        [0, 0], // amount of Ether / RBTC to supply
-        [proposalCalldata, setTargetCalldata], // encoded function call
-        proposalDescription,
-      );
+      const tx = await governor
+        .connect(voters[0])
+        .propose(...proposal, proposalDescription);
       const receipt = await tx.wait();
       const { args } = receipt.events.find(
         (e) => e.event === 'ProposalCreated',
@@ -283,12 +261,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
     });
 
     it('should execute the Proposal and call its target contract', async () => {
-      const tx = governor.execute(
-        [rifToken.address, governor.address],
-        [0, 0],
-        [proposalCalldata, setTargetCalldata],
-        proposalDescriptionHash,
-      );
+      const tx = governor.execute(...proposal, proposalDescriptionHash);
       await expect(tx)
         .to.emit(proposalTarget, 'ProposalProcessed')
         .withArgs(proposalId);
@@ -315,18 +288,16 @@ describe('Governance - Successfull Fungible tokens voting', () => {
     });
 
     it('should unwrap governance tokens to obtain regular tokens', async () => {
-      const txs = voters.map((voter) => ({
-        voter,
-        promise: rifVoteToken
-          .connect(voter)
-          .withdrawTo(voter.address, voterRifAmount),
-      }));
       await Promise.all(
-        txs.map((tx) =>
-          expect(tx.promise)
+        voters.map((voter) =>
+          expect(
+            rifVoteToken
+              .connect(voter)
+              .withdrawTo(voter.address, voterRifAmount),
+          )
             .to.emit(rifVoteToken, 'Transfer')
             .withArgs(
-              tx.voter.address,
+              voter.address,
               hre.ethers.constants.AddressZero,
               voterRifAmount,
             ),

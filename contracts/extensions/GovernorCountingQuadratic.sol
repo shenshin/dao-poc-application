@@ -2,13 +2,13 @@
 pragma solidity ^0.8.9;
 
 import '@openzeppelin/contracts/governance/extensions/GovernorVotes.sol';
-import './GovernorCountingSimple.sol';
+import '@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol';
 import '../util/FixedPointMathLib.sol';
 
 /**
  * @dev Extension of {Governor} for quadratic (sqrt), 3 options, vote counting.
- * Iherit from GovernorVotes to have access to `token` in order to calculate quorum.
- * `quorum` is defined here as prescibed in the Governor docs.
+ * Inherit from GovernorVotes to have access to `token` in order to calculate quorum.
+ * `quorum` is defined here as prescribed in the Governor docs.
  */
 abstract contract GovernorCountingQuadratic is
     GovernorVotes,
@@ -29,26 +29,14 @@ abstract contract GovernorCountingQuadratic is
         address account,
         uint8 support,
         uint256 weight,
-        bytes memory // params
+        bytes memory params
     ) internal virtual override(Governor, GovernorCountingSimple) {
-        ProposalVote storage proposalvote = _proposalVotes[proposalId];
-
-        require(
-            !proposalvote.hasVoted[account],
-            'GovernorCountingQuadratic: vote already cast'
+        super._countVote(
+            proposalId,
+            account,
+            support,
+            FixedPointMathLib.sqrt(weight),
+            params
         );
-        proposalvote.hasVoted[account] = true;
-
-        if (support == uint8(VoteType.Against)) {
-            proposalvote.againstVotes += FixedPointMathLib.sqrt(weight);
-        } else if (support == uint8(VoteType.For)) {
-            proposalvote.forVotes += FixedPointMathLib.sqrt(weight);
-        } else if (support == uint8(VoteType.Abstain)) {
-            proposalvote.abstainVotes += FixedPointMathLib.sqrt(weight);
-        } else {
-            revert(
-                'GovernorCountingQuadratic: invalid value for enum VoteType'
-            );
-        }
     }
 }

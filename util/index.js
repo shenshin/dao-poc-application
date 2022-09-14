@@ -1,3 +1,5 @@
+const { mine } = require('@nomicfoundation/hardhat-network-helpers');
+
 async function deployContract(name, ...params) {
   const ContractFactory = await ethers.getContractFactory(name);
   const contract = await ContractFactory.deploy(...params);
@@ -9,9 +11,7 @@ function skipBlocks(blocksToSkip) {
   return new Promise((resolve) => {
     (async () => {
       if (hre.network.name === 'hardhat') {
-        await hre.network.provider.send('hardhat_mine', [
-          `0x${blocksToSkip.toString(16)}`,
-        ]);
+        await mine(blocksToSkip);
         resolve();
       } else {
         const deadline =
@@ -24,7 +24,17 @@ function skipBlocks(blocksToSkip) {
   });
 }
 
+function getSigners(amount = 40) {
+  const { mnemonic, path } = hre.network.config.accounts;
+  return [...Array(amount).keys()].map((i) =>
+    hre.ethers.Wallet.fromMnemonic(mnemonic, `${path}/${i}`).connect(
+      hre.ethers.provider,
+    ),
+  );
+}
+
 module.exports = {
   deployContract,
   skipBlocks,
+  getSigners,
 };
