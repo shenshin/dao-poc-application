@@ -24,13 +24,18 @@ function skipBlocks(blocksToSkip) {
   });
 }
 
-function getSigners(amount = 40) {
+function getSigners(from = 0, to = 20) {
+  if (to <= from) throw new Error(`'to' index should be bigger than 'from'`);
   const { mnemonic, path } = hre.network.config.accounts;
-  return [...Array(amount).keys()].map((i) =>
-    hre.ethers.Wallet.fromMnemonic(mnemonic, `${path}/${i}`).connect(
-      hre.ethers.provider,
-    ),
-  );
+  const signers = [];
+  for (let i = from; i < to; i += 1) {
+    signers.push(
+      hre.ethers.Wallet.fromMnemonic(mnemonic, `${path}/${i}`).connect(
+        hre.ethers.provider,
+      ),
+    );
+  }
+  return signers;
 }
 
 module.exports = {
