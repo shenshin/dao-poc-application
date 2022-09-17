@@ -1,43 +1,45 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
-const { deployContract, skipBlocks } = require('../../util');
+const { deployContract, skipBlocks, getSigners } = require('../../util');
 const { ProposalState, VoteType } = require('../constants.js');
+const rifTokenAbi = require('../../abi/rifToken.json');
 
 describe('Governance - Successfull Fungible tokens voting', () => {
+  // voters
   let deployer;
   let voters;
-  let team;
+  let votersAgainst;
+  let votersFor;
+  let votersAbstain;
+
+  // smart contracts
   let rifToken;
   let rifVoteToken;
   let governor;
   let proposalTarget;
+
   // proposal
   let proposal;
   let proposalId;
-  let proposalCalldata;
   let proposalDescription;
   let proposalDescriptionHash;
+  let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const totalRifSupply = 1000;
   const voterRifAmount = 100;
-  const treasuryRifAmount = 700;
+  const newVotingPeriod = 33;
 
   before(async () => {
-    const signers = await hre.ethers.getSigners();
-    [deployer, team] = signers;
+    const signers = await getSigners(0, 8);
+    [deployer] = signers;
     voters = signers.slice(2, 5);
-    rifToken = await deployContract('RIFToken', totalRifSupply);
-    rifVoteToken = await deployContract('RIFVoteToken', rifToken.address);
-    governor = await deployContract('GovernorFT', rifVoteToken.address);
-    proposalTarget = await deployContract('ProposalTarget', governor.address);
+
+    [rifToken, rifVoteToken, governor, proposalTarget] = await hre.run(
+      'deploy',
+    );
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
-    it('RIF total supply should be minted', async () => {
-      expect(await rifToken.totalSupply()).to.equal(totalRifSupply);
-    });
-
     it('RIFVote decimals should equal RIF decimals', async () => {
       expect(await rifVoteToken.decimals()).to.equal(await rifToken.decimals());
     });
@@ -54,13 +56,6 @@ describe('Governance - Successfull Fungible tokens voting', () => {
         }
       }
       await transferRifs();
-    });
-
-    it('The deployer should transfer the rest of RIF tokens to the Governance Treasury', async () => {
-      const tx = rifToken.transfer(governor.address, treasuryRifAmount);
-      await expect(tx)
-        .to.emit(rifToken, 'Transfer')
-        .withArgs(deployer.address, governor.address, treasuryRifAmount);
     });
   });
 
@@ -157,22 +152,23 @@ describe('Governance - Successfull Fungible tokens voting', () => {
         ['string'],
         [proposalDescription],
       );
-      // encoding RIF token `transfer` function call
-      proposalCalldata = rifToken.interface.encodeFunctionData('transfer', [
-        team.address,
-        treasuryRifAmount,
-      ]);
+      // encoding the setting of a new voting period on the governor
+      newVotingPeriodCalldata = governor.interface.encodeFunctionData(
+        'setVotingPeriod',
+        [newVotingPeriod],
+      );
       // encoding the setting of proposal target reference on the governor
       setTargetCalldata = governor.interface.encodeFunctionData(
         'updateProposalTarget',
         [proposalTarget.address],
       );
       proposal = [
-        [rifToken.address, governor.address],
+        [governor.address, governor.address],
         [0, 0],
-        [proposalCalldata, setTargetCalldata],
+        [newVotingPeriodCalldata, setTargetCalldata],
       ];
       // get proposal ID before creating the proposal
+
       proposalId = await governor.hashProposal(
         ...proposal,
         proposalDescriptionHash,
@@ -251,7 +247,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
   });
 
   describe('Proposal execution', () => {
-    it('Proposal should be succeeded', async () => {
+    it('Proposal should be successfull', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
@@ -267,15 +263,12 @@ describe('Governance - Successfull Fungible tokens voting', () => {
         .withArgs(proposalId);
     });
 
-    it("governor's RIF treasury tokens should be transferred to the team", async () => {
-      expect(await rifToken.balanceOf(team.address)).to.equal(
-        treasuryRifAmount,
-      );
-      expect(await rifToken.balanceOf(governor.address)).to.equal(0);
-    });
-
     it('address of the proposal target should be set on the governor', async () => {
       expect(await governor.proposalTarget()).to.equal(proposalTarget.address);
+    });
+
+    it('voting period should be updated on the governor', async () => {
+      expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
     });
   });
 
@@ -287,7 +280,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
       balances.forEach((balance) => expect(balance).to.equal(0));
     });
 
-    it('should unwrap governance tokens to obtain regular tokens', async () => {
+    it('should unwrap voting tokens to obtain regular tokens', async () => {
       await Promise.all(
         voters.map((voter) =>
           expect(

@@ -23,7 +23,7 @@ describe('Governance - Defeated NFT voting', () => {
   const newVotingPeriod = 33;
 
   before(async () => {
-    voters = getSigners(0, 8);
+    voters = await getSigners(0, 8);
     votersFor = voters.slice(0, 2);
     votersAbstain = voters.slice(2, 5);
     votersAgainst = voters.slice(5);

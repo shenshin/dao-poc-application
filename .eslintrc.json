@@ -23,6 +23,7 @@
     "describe": "readonly",
     "before": "readonly",
     "it": "readonly",
-    "task": "readonly"
+    "task": "readonly",
+    "types": "readonly"
   }
 }
