@@ -2,15 +2,14 @@ const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
 const { skipBlocks, getSigners } = require('../../util');
-const { ProposalState, VoteType } = require('../../test/constants.js');
-const rifTokenAbi = require('../../abi/rifToken.json');
+const { ProposalState, VoteType } = require('../constants.js');
 
-describe('Testnet contracts', () => {
+describe('Governance - Successfull Fungible tokens voting', () => {
   // voters
-  let deployer;
   let voters;
   let votersAgainst;
   let votersFor;
+  let votersAbstain;
 
   // smart contracts
   let rifToken;
@@ -19,46 +18,28 @@ describe('Testnet contracts', () => {
   let proposalTarget;
 
   // proposal
-  let proposalDescription;
-  let proposalDescriptionHash;
   let proposal;
   let proposalId;
-  let proposalCalldata;
+  let proposalDescription;
+  let proposalDescriptionHash;
+  let newVotingPeriodCalldata;
+  let setTargetCalldata;
 
-  const votingPower = '100000000000000000000';
+  const votingPower = '100000000000000000000'; // 10 RIFs
+  const newVotingPeriod = 33; // blocks
 
   before(async () => {
-    voters = await getSigners(0, 8);
-    [deployer] = voters;
-    votersAgainst = voters.slice(0, 2);
-    votersFor = voters.slice(2);
+    voters = await getSigners(0, 8); // 8 voters
+    votersAgainst = voters.slice(0, 2); // 20 votes Against
+    votersFor = voters.slice(2, 5); // 30 votes For
+    votersAbstain = voters.slice(5, 8); // 3 votes Abstain
 
-    rifToken = new hre.ethers.Contract(
-      hre.network.config.deployed.rif.toLowerCase(),
-      rifTokenAbi,
-      deployer,
-    );
-
-    rifVoteToken = await hre.ethers.getContractAt(
-      'RIFVoteToken',
-      hre.network.config.deployed.rifVote.toLowerCase(),
-      deployer,
-    );
-
-    governor = await hre.ethers.getContractAt(
-      'GovernorFT',
-      hre.network.config.deployed.governor.toLowerCase(),
-      deployer,
-    );
-
-    proposalTarget = await hre.ethers.getContractAt(
-      'ProposalTarget',
-      hre.network.config.deployed.proposalTarget.toLowerCase(),
-      deployer,
+    [rifToken, rifVoteToken, governor, proposalTarget] = await hre.run(
+      'deploy',
     );
   });
 
-  describe('delegating voting power', () => {
+  describe('RIF / RIFVote upon depoyment', () => {
     it('each voter should have at least 10 RIFs', async () => {
       await Promise.all(
         voters.map(async (voter) => {
@@ -67,6 +48,13 @@ describe('Testnet contracts', () => {
         }),
       );
     });
+
+    it('RIFVote decimals should equal RIF decimals', async () => {
+      expect(await rifVoteToken.decimals()).to.equal(await rifToken.decimals());
+    });
+  });
+
+  describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
     it('voters should approve the RIF allowance for RIFVote', async () => {
       await Promise.all(
         voters.map((voter) =>
@@ -80,6 +68,17 @@ describe('Testnet contracts', () => {
               votingPower,
             ),
         ),
+      );
+    });
+
+    it('each voter allowance for RIFVote should be set on the RIF token', async () => {
+      const allowances = await Promise.all(
+        voters.map((voter) =>
+          rifToken.allowance(voter.address, rifVoteToken.address),
+        ),
+      );
+      allowances.forEach((allowance) =>
+        expect(allowance).to.equal(votingPower),
       );
     });
 
@@ -99,6 +98,17 @@ describe('Testnet contracts', () => {
       );
     });
 
+    it('voters should now own the RIFVote tokens', async () => {
+      await Promise.all(
+        voters.map(async (voter) => {
+          const balance = await rifVoteToken
+            .connect(voter)
+            .balanceOf(voter.address);
+          expect(balance).to.equal(votingPower);
+        }),
+      );
+    });
+
     it('RIFVote token holders should self-delegate the voting power', async () => {
       await Promise.all(
         voters.map(async (voter) => {
@@ -115,19 +125,27 @@ describe('Testnet contracts', () => {
   describe('Proposal creation', () => {
     before(async () => {
       proposalDescription = uuidv4(); // always unique id
-
+      // calculating keccak256 hash of th proposal description
       proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
         ['string'],
         [proposalDescription],
       );
-
-      proposalCalldata = governor.interface.encodeFunctionData(
+      // encoding the setting of a new voting period on the governor
+      newVotingPeriodCalldata = governor.interface.encodeFunctionData(
+        'setVotingPeriod',
+        [newVotingPeriod],
+      );
+      // encoding the setting of proposal target reference on the governor
+      setTargetCalldata = governor.interface.encodeFunctionData(
         'updateProposalTarget',
         [proposalTarget.address],
       );
-
-      proposal = [[governor.address], [0], [proposalCalldata]];
-
+      proposal = [
+        [governor.address, governor.address],
+        [0, 0],
+        [newVotingPeriodCalldata, setTargetCalldata],
+      ];
+      // get proposal ID before creating the proposal
       proposalId = hre.ethers.BigNumber.from(
         hre.ethers.utils.keccak256(
           hre.ethers.utils.defaultAbiCoder.encode(
@@ -146,10 +164,10 @@ describe('Testnet contracts', () => {
       expect(governorProposalId).to.equal(proposalId);
     });
 
-    it('deployer should be able to create a proposal', async () => {
+    it('voter 0 should be able to create a proposal', async () => {
       await skipBlocks(1);
       const tx = await governor
-        .connect(deployer)
+        .connect(voters[0])
         .propose(...proposal, proposalDescription);
       const receipt = await tx.wait();
       const { args } = receipt.events.find(
@@ -163,6 +181,17 @@ describe('Testnet contracts', () => {
     it('voting for proposal should be active', async () => {
       await skipBlocks(1);
       expect(await governor.state(proposalId)).to.equal(ProposalState.Active);
+    });
+
+    it('voters should not have voted yet', async () => {
+      await Promise.all(
+        voters.map(async (voter) => {
+          const hasVoted = await governor
+            .connect(voter)
+            .hasVoted(proposalId, voter.address);
+          expect(hasVoted).to.be.false;
+        }),
+      );
     });
 
     it('should vote for', async () => {
@@ -191,13 +220,43 @@ describe('Testnet contracts', () => {
       );
     });
 
-    it('it should store the given votes', async () => {
+    it('should vote abstain', async () => {
+      await Promise.all(
+        votersAbstain.map((voter) =>
+          expect(governor.connect(voter).castVote(proposalId, VoteType.Abstain))
+            .to.emit(governor, 'VoteCast')
+            .withArgs(
+              voter.address,
+              proposalId,
+              VoteType.Abstain,
+              votingPower,
+              '',
+            ),
+        ),
+      );
+    });
+
+    it('voters should have finished voting', async () => {
+      await Promise.all(
+        voters.map(async (voter) => {
+          const hasVoted = await governor
+            .connect(voter)
+            .hasVoted(proposalId, voter.address);
+          expect(hasVoted).to.be.true;
+        }),
+      );
+    });
+
+    it('governore should store the given votes', async () => {
       const proposalVotes = await governor.proposalVotes(proposalId);
       expect(proposalVotes.againstVotes).to.equal(
         hre.ethers.BigNumber.from(votingPower).mul(votersAgainst.length),
       );
       expect(proposalVotes.forVotes).to.equal(
         hre.ethers.BigNumber.from(votingPower).mul(votersFor.length),
+      );
+      expect(proposalVotes.abstainVotes).to.equal(
+        hre.ethers.BigNumber.from(votingPower).mul(votersAbstain.length),
       );
     });
   });
@@ -217,6 +276,16 @@ describe('Testnet contracts', () => {
       await expect(tx)
         .to.emit(proposalTarget, 'ProposalProcessed')
         .withArgs(proposalId);
+    });
+
+    it('address of the proposal target should be set on the governor', async () => {
+      expect(await governor.proposalTarget()).to.equal(
+        hre.ethers.utils.getAddress(proposalTarget.address),
+      );
+    });
+
+    it('voting period should be updated on the governor', async () => {
+      expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
     });
   });
 

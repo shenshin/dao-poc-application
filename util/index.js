@@ -1,5 +1,34 @@
+const fs = require('fs/promises');
 const { mine } = require('@nomicfoundation/hardhat-network-helpers');
 const rifTokenAbi = require('../abi/rifToken.json');
+
+async function readDeployments() {
+  let deployments;
+  try {
+    deployments = JSON.parse(
+      await fs.readFile(hre.config.deploymentsFile, 'utf8'),
+    );
+  } catch (error) {
+    deployments = {};
+  }
+  return deployments;
+}
+
+async function readDeployedAddress(contractName) {
+  const deployments = await readDeployments();
+  return deployments?.[hre.network.name]?.[contractName];
+}
+
+async function writeDeployedAddress(contractName, address) {
+  const deployments = await readDeployments();
+  if (!(hre.network.name in deployments)) {
+    deployments[hre.network.name] = {};
+  }
+  deployments[hre.network.name][contractName] = address;
+  const file = hre.config.deploymentsFile;
+  await fs.writeFile(file, JSON.stringify(deployments), 'utf8');
+  console.log(`recorded ${contractName} address to ${file}`);
+}
 
 async function deployContract(name, ...params) {
   const ContractFactory = await ethers.getContractFactory(name);
@@ -15,26 +44,37 @@ async function deployContractBy(name, deployer, ...params) {
   const ContractFactory = await ethers.getContractFactory(name);
   const contract = await ContractFactory.connect(deployer).deploy(...params);
   await contract.deployed();
+  console.log(
+    `${name} was deployed by ${deployer.address} at ${hre.network.name} with address ${contract.address}`,
+  );
   return contract;
 }
 
-async function getContract(name, signer, ...params) {
-  const address = hre.network.config?.deployed?.[name];
+async function getContract({ name, abi, signer }, ...params) {
+  const address = await readDeployedAddress(name);
   let contract;
   if (address) {
-    contract = await hre.ethers.getContractAt(
-      name,
-      address.toLowerCase(),
-      signer,
-    );
+    if (abi) {
+      console.log(`Getting ${name} from ABI`);
+      contract = new hre.ethers.Contract(address.toLowerCase(), abi, signer);
+      contract.getContractAction = 'abiConnect';
+    } else {
+      console.log(`Getting ${name} from artifact`);
+      contract = await hre.ethers.getContractAt(
+        name,
+        address.toLowerCase(),
+        signer,
+      );
+      contract.getContractAction = 'artifactConnect';
+    }
     console.log(
-      `Using ${name}, previously deployed at ${hre.network.name} with address ${address}`,
+      `Connected to ${name}, previously deployed at ${hre.network.name} with address ${address}`,
     );
   } else {
     contract = await deployContractBy(name, signer, ...params);
-    console.log(
-      `${name} was deployed by ${signer.address} at ${hre.network.name} with address ${contract.address}`,
-    );
+    if (hre.network.name !== 'hardhat')
+      await writeDeployedAddress(name, contract.address);
+    contract.getContractAction = 'deploy';
   }
   return contract;
 }
@@ -109,4 +149,6 @@ module.exports = {
   getSigners,
   getBalances,
   getContract,
+  readDeployedAddress,
+  writeDeployedAddress,
 };

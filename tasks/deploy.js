@@ -1,5 +1,5 @@
 const { task } = require('hardhat/config');
-const { deployContractBy, getSigners, getContract } = require('../util');
+const { getSigners, getContract } = require('../util');
 const rifTokenAbi = require('../abi/rifToken.json');
 
 async function transferRifsToVoters(rifToken, voters) {
@@ -16,26 +16,6 @@ async function transferRifsToVoters(rifToken, voters) {
   await transferRifs(voters.slice(1));
 }
 
-async function getRifContract(voters) {
-  const totalRifSupply = '1000000000000000000000000000';
-  const [deployer] = voters;
-  const address = hre.network.config?.deployed?.RIFToken;
-  let rif;
-  if (address) {
-    rif = new hre.ethers.Contract(address.toLowerCase(), rifTokenAbi, deployer);
-    console.log(
-      `Using RIFToken, previously deployed at ${hre.network.name} with address ${address}`,
-    );
-  } else {
-    rif = await deployContractBy('RIFToken', deployer, totalRifSupply);
-    console.log(
-      `RIF was deployed by ${deployer.address} at ${hre.network.name} with address ${rif.address}`,
-    );
-    await transferRifsToVoters(rif, voters);
-  }
-  return rif;
-}
-
 module.exports = task('deploy', 'Deploys DAO smart contracts')
   .addOptionalParam(
     'voters',
@@ -47,21 +27,36 @@ module.exports = task('deploy', 'Deploys DAO smart contracts')
     const voters = await getSigners(0, votersNumber);
     const [deployer] = voters;
 
-    const rifToken = await getRifContract(voters);
+    const rifToken = await getContract(
+      {
+        name: 'RIFToken',
+        abi: rifTokenAbi,
+        signer: deployer,
+      },
+      '1000000000000000000000000000',
+    );
+    if (rifToken.getContractAction === 'deploy')
+      await transferRifsToVoters(rifToken, voters);
 
     const rifVoteToken = await getContract(
-      'RIFVoteToken',
-      deployer,
+      {
+        name: 'RIFVoteToken',
+        signer: deployer,
+      },
       rifToken.address,
     );
     const governor = await getContract(
-      'GovernorFT',
-      deployer,
+      {
+        name: 'GovernorFT',
+        signer: deployer,
+      },
       rifVoteToken.address,
     );
     const proposalTarget = await getContract(
-      'ProposalTarget',
-      deployer,
+      {
+        name: 'ProposalTarget',
+        signer: deployer,
+      },
       governor.address,
     );
     return [rifToken, rifVoteToken, governor, proposalTarget];
