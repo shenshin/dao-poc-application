@@ -1,118 +1,96 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
-const { deployContract, skipBlocks } = require('../../util');
-const { ProposalState, VoteType } = require('../constants.js');
+const { v4: uuidv4 } = require('uuid');
+const {
+  deployFtQuadratic,
+  skipBlocks,
+  getSigners,
+  sqrtBN,
+} = require('../../util');
+const { ProposalState, VoteType } = require('../../util/constants.js');
 
 describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
-  let deployer;
-  let team;
   let voters;
+  // contracts
   let rifVoteToken;
   let governor;
   let proposalTarget;
   // proposal
   let proposal;
   let proposalId;
-  let proposalCalldata;
   let proposalDescription;
   let proposalDescriptionHash;
+  let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const totalSupply = 10301;
-  const treasuryRifAmount = 200;
-
-  const votersBalances = [1, 100, 10000];
+  const newVotingPeriod = 44;
 
   before(async () => {
-    const signers = await hre.ethers.getSigners();
-    [deployer, team] = signers;
-    voters = signers.slice(2, 5);
-    // associating different voting power with each voter
-    votersBalances.forEach((amount, i) => {
-      voters[i].rifAmount = amount;
-    });
-    rifVoteToken = await deployContract('QuadraticVoteToken', totalSupply);
-    governor = await deployContract(
-      'GovernorFtQuadratic',
-      rifVoteToken.address,
+    const signers = await getSigners(0, 4);
+    // skip deployer beacause he doesnt vote
+    voters = signers.slice(1);
+    [rifVoteToken, governor, proposalTarget] = await deployFtQuadratic(signers);
+    // store token balances
+    await Promise.all(
+      voters.map(async (voter, i) => {
+        const balance = await rifVoteToken.balanceOf(voter.address);
+        voters[i].balance = balance;
+      }),
     );
-    proposalTarget = await deployContract('ProposalTarget', governor.address);
   });
 
   describe('RIFVote upon depoyment', () => {
-    it('RIF total supply should be minted', async () => {
-      expect(await rifVoteToken.totalSupply()).to.equal(totalSupply);
-    });
-
-    it('should transfer tokens to voters and treasury', async () => {
-      const wallets = [...voters];
-      async function transferRifs() {
-        const voter = wallets.pop();
-        if (voter) {
-          await expect(rifVoteToken.transfer(voter.address, voter.rifAmount))
-            .to.emit(rifVoteToken, 'Transfer')
-            .withArgs(deployer.address, voter.address, voter.rifAmount);
-          await transferRifs();
-        }
-      }
-      await transferRifs();
-      await expect(rifVoteToken.transfer(governor.address, treasuryRifAmount))
-        .to.emit(rifVoteToken, 'Transfer')
-        .withArgs(deployer.address, governor.address, treasuryRifAmount);
-    });
-
     it('voters should delegate voting power', async () => {
       await Promise.all(
-        voters.map((voter) =>
-          expect(rifVoteToken.connect(voter).delegate(voter.address))
-            .to.emit(rifVoteToken, 'DelegateChanged')
-            .withArgs(
-              voter.address,
-              hre.ethers.constants.AddressZero,
-              voter.address,
-            ),
-        ),
+        voters.map(async (voter) => {
+          const tx = await rifVoteToken.connect(voter).delegate(voter.address);
+          await tx.wait();
+          expect(
+            await rifVoteToken.connect(voter).getVotes(voter.address),
+          ).to.equal(voter.balance);
+        }),
       );
     });
   });
 
   describe('Proposal creation', () => {
     before(async () => {
-      // The Proposal is as follows:
-      // Let's give all the RIF tokens from the Treasury to the team
-
-      proposalDescription = 'Proposal #1: Give a grant to proposer';
+      proposalDescription = uuidv4(); // always unique id
       // calculating keccak256 hash of th proposal description
       proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
         ['string'],
         [proposalDescription],
       );
-      // encoding RIF token `transfer` function call
-      proposalCalldata = rifVoteToken.interface.encodeFunctionData('transfer', [
-        team.address,
-        treasuryRifAmount,
-      ]);
+      // encoding the setting of a new voting period on the governor
+      newVotingPeriodCalldata = governor.interface.encodeFunctionData(
+        'setVotingPeriod',
+        [newVotingPeriod],
+      );
       // encoding the setting of proposal target reference on the governor
       setTargetCalldata = governor.interface.encodeFunctionData(
         'updateProposalTarget',
         [proposalTarget.address],
       );
       proposal = [
-        [rifVoteToken.address, governor.address],
+        [governor.address, governor.address],
         [0, 0],
-        [proposalCalldata, setTargetCalldata],
+        [newVotingPeriodCalldata, setTargetCalldata],
       ];
       // get proposal ID before creating the proposal
-      proposalId = await governor.hashProposal(
-        ...proposal,
-        proposalDescriptionHash,
+      proposalId = hre.ethers.BigNumber.from(
+        hre.ethers.utils.keccak256(
+          hre.ethers.utils.defaultAbiCoder.encode(
+            ['address[]', 'uint256[]', 'bytes[]', 'bytes32'],
+            [...proposal, proposalDescriptionHash],
+          ),
+        ),
       );
     });
 
     it('voter 1 should be able to create a proposal', async () => {
       await skipBlocks(1);
       const tx = await governor
-        .connect(voters[0])
+        .connect(voters[1])
         .propose(...proposal, proposalDescription);
       const receipt = await tx.wait();
       const { args } = receipt.events.find(
@@ -124,28 +102,30 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
 
   describe('Voting', () => {
     it('voters should not have voted yet', async () => {
-      const results = await Promise.all(
-        voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
+      await Promise.all(
+        voters.map(async (voter) => {
+          const result = await governor.hasVoted(proposalId, voter.address);
+          expect(result).to.be.false;
+        }),
       );
-      results.forEach((hasVoted) => expect(hasVoted).to.be.false);
     });
 
-    it('Voter 1 should vote for', async () => {
+    it('Voter 0 should vote Abstain', async () => {
       await skipBlocks(1);
-      const reason = '';
-      const tx = governor.connect(voters[0]).castVote(proposalId, VoteType.For);
+      const tx = governor
+        .connect(voters[0])
+        .castVote(proposalId, VoteType.Abstain);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
         .withArgs(
           voters[0].address,
           proposalId,
-          VoteType.For,
-          voters[0].rifAmount,
-          reason,
+          VoteType.Abstain,
+          voters[0].balance,
+          '',
         );
     });
-    it('Voter 2 should vote against', async () => {
-      const reason = '';
+    it('Voter 1 should vote Against', async () => {
       const tx = governor
         .connect(voters[1])
         .castVote(proposalId, VoteType.Against);
@@ -155,12 +135,11 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
           voters[1].address,
           proposalId,
           VoteType.Against,
-          voters[1].rifAmount,
-          reason,
+          voters[1].balance,
+          '',
         );
     });
-    it('Voter 3 should vote for', async () => {
-      const reason = '';
+    it('Voter 2 should vote For', async () => {
       const tx = governor.connect(voters[2]).castVote(proposalId, VoteType.For);
       await expect(tx)
         .to.emit(governor, 'VoteCast')
@@ -168,36 +147,41 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
           voters[2].address,
           proposalId,
           VoteType.For,
-          voters[2].rifAmount,
-          reason,
+          voters[2].balance,
+          '',
         );
     });
     it('voters should have finished voting', async () => {
-      const results = await Promise.all(
-        voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
+      await Promise.all(
+        voters.map(async (voter) => {
+          const result = await governor.hasVoted(proposalId, voter.address);
+          expect(result).to.be.true;
+        }),
       );
-      results.forEach((hasVoted) => expect(hasVoted).to.be.true);
     });
   });
 
   describe('Voting results', () => {
     it('total votes should equal voters rif amount square root sum', async () => {
       const proposalVotes = await governor.proposalVotes(proposalId);
-      expect(proposalVotes.againstVotes).to.equal(10);
-      expect(proposalVotes.forVotes).to.equal(1 + 100);
+      expect(proposalVotes.abstainVotes).to.equal(sqrtBN(voters[0].balance));
+      expect(proposalVotes.againstVotes).to.equal(sqrtBN(voters[1].balance));
+      expect(proposalVotes.forVotes).to.equal(sqrtBN(voters[2].balance));
     });
 
     it('should calculate the quorum correctly', async () => {
-      const quorum = await governor.quorum(
-        (await hre.ethers.provider.getBlockNumber()) - 1,
-      );
-      expect(quorum).to.equal(Math.floor(Math.sqrt(totalSupply)));
-    });
-
-    it('Proposal should be succeeded', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
+
+      const totalVotes = voters.reduce(
+        (p, voter) => p.add(voter.balance),
+        hre.ethers.BigNumber.from('0'),
+      );
+      expect(await governor.quorum(deadline)).to.equal(sqrtBN(totalVotes));
+    });
+
+    it('Proposal should be successfull', async () => {
       expect(await governor.state(proposalId)).to.equal(
         ProposalState.Succeeded,
       );
@@ -212,15 +196,14 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
         .withArgs(proposalId);
     });
 
-    it("governor's RIF treasury tokens should be transferred to the team", async () => {
-      expect(await rifVoteToken.balanceOf(team.address)).to.equal(
-        treasuryRifAmount,
+    it('address of the proposal target should be set on the governor', async () => {
+      expect(await governor.proposalTarget()).to.equal(
+        hre.ethers.utils.getAddress(proposalTarget.address),
       );
-      expect(await rifVoteToken.balanceOf(governor.address)).to.equal(0);
     });
 
-    it('address of the proposal target should be set on the governor', async () => {
-      expect(await governor.proposalTarget()).to.equal(proposalTarget.address);
+    it('voting period should be updated on the governor', async () => {
+      expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
     });
   });
 });

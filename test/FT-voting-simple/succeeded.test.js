@@ -1,8 +1,8 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const { skipBlocks, getSigners } = require('../../util');
-const { ProposalState, VoteType } = require('../constants.js');
+const { skipBlocks, getSigners, deployFtSimple } = require('../../util');
+const { ProposalState, VoteType } = require('../../util/constants.js');
 
 describe('Governance - Successfull Fungible tokens voting', () => {
   // voters
@@ -25,18 +25,17 @@ describe('Governance - Successfull Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const votingPower = '100000000000000000000'; // 10 RIFs
+  const votingPower = hre.ethers.BigNumber.from('100000000000000000000'); // 10 RIFs
   const newVotingPeriod = 33; // blocks
 
   before(async () => {
     voters = await getSigners(0, 8); // 8 voters
+    [rifToken, rifVoteToken, governor, proposalTarget] = await deployFtSimple(
+      voters,
+    );
     votersAgainst = voters.slice(0, 2); // 20 votes Against
     votersFor = voters.slice(2, 5); // 30 votes For
     votersAbstain = voters.slice(5, 8); // 3 votes Abstain
-
-    [rifToken, rifVoteToken, governor, proposalTarget] = await hre.run(
-      'deploy',
-    );
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -262,10 +261,16 @@ describe('Governance - Successfull Fungible tokens voting', () => {
   });
 
   describe('Proposal execution', () => {
-    it('Proposal should be successfull', async () => {
+    it('Quorum should be reached', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
+      // 4% from total votes
+      const quorum = votingPower.mul(voters.length).div(100).mul(4);
+      expect(await governor.quorum(deadline)).to.equal(quorum);
+    });
+
+    it('Proposal should be successfull', async () => {
       expect(await governor.state(proposalId)).to.equal(
         ProposalState.Succeeded,
       );

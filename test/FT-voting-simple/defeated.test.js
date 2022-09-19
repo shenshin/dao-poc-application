@@ -1,8 +1,12 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const { skipBlocks, getSigners } = require('../../util');
-const { ProposalState, VoteType } = require('../constants.js');
+const {
+  skipBlocks,
+  getSigners,
+  deployFtSimple,
+  constants: { ProposalState, VoteType },
+} = require('../../util');
 
 describe('Governance - Defeated Fungible tokens voting', () => {
   // voters
@@ -25,19 +29,18 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const votingPower = '100000000000000000000'; // 10 RIFs
+  const votingPower = hre.ethers.BigNumber.from('100000000000000000000'); // 10 RIFs
   const currentVotingPeriod = 18; // blocks
   const newVotingPeriod = 33; // blocks
 
   before(async () => {
     voters = await getSigners(0, 8); // 8 voters
+    [rifToken, rifVoteToken, governor, proposalTarget] = await deployFtSimple(
+      voters,
+    );
     votersAgainst = voters.slice(0, 4); // 40 votes Against
     votersFor = voters.slice(4, 7); // 30 votes For
     votersAbstain = voters.slice(7, 8); // 10 votes Abstain
-
-    [rifToken, rifVoteToken, governor, proposalTarget] = await hre.run(
-      'deploy',
-    );
   });
 
   describe('RIF / RIFVote upon depoyment', () => {
@@ -263,10 +266,16 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   });
 
   describe('Proposal execution', () => {
-    it('Proposal should be defeated', async () => {
+    it('Quorum should be reached', async () => {
       const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
       const currentBlock = await hre.ethers.provider.getBlockNumber();
       await skipBlocks(deadline - currentBlock + 1);
+      // 4% from total votes
+      const quorum = votingPower.mul(voters.length).div(100).mul(4);
+      expect(await governor.quorum(deadline)).to.equal(quorum);
+    });
+
+    it('Proposal should be defeated', async () => {
       expect(await governor.state(proposalId)).to.equal(ProposalState.Defeated);
     });
 
