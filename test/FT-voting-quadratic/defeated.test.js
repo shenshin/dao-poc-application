@@ -23,7 +23,9 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const currentVotingPeriod = 18;
+  let initPropTargAddrOnGovernor;
+  let initVotingPeriod;
+
   const newVotingPeriod = 44;
 
   before(async () => {
@@ -31,6 +33,8 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
     // skip deployer beacause he doesnt vote
     voters = signers.slice(1);
     [rifVoteToken, governor, proposalTarget] = await deployFtQuadratic(signers);
+    initPropTargAddrOnGovernor = await governor.proposalTarget();
+    initVotingPeriod = await governor.votingPeriod();
     // store token balances
     await Promise.all(
       voters.map(async (voter, i) => {
@@ -195,12 +199,12 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
 
     it('address of the proposal target should remain zero on the governor', async () => {
       expect(await governor.proposalTarget()).to.equal(
-        hre.ethers.constants.AddressZero,
+        initPropTargAddrOnGovernor,
       );
     });
 
     it('voting period should remain the same', async () => {
-      expect(await governor.votingPeriod()).to.equal(currentVotingPeriod);
+      expect(await governor.votingPeriod()).to.equal(initVotingPeriod);
     });
   });
 });

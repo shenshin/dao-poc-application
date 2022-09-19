@@ -29,8 +29,10 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
+  let initPropTargAddrOnGovernor;
+  let initVotingPeriod;
+
   const votingPower = hre.ethers.BigNumber.from('100000000000000000000'); // 10 RIFs
-  const currentVotingPeriod = 18; // blocks
   const newVotingPeriod = 33; // blocks
 
   before(async () => {
@@ -38,6 +40,8 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     [rifToken, rifVoteToken, governor, proposalTarget] = await deployFtSimple(
       voters,
     );
+    initPropTargAddrOnGovernor = await governor.proposalTarget();
+    initVotingPeriod = await governor.votingPeriod();
     votersAgainst = voters.slice(0, 4); // 40 votes Against
     votersFor = voters.slice(4, 7); // 30 votes For
     votersAbstain = voters.slice(7, 8); // 10 votes Abstain
@@ -284,14 +288,14 @@ describe('Governance - Defeated Fungible tokens voting', () => {
       await expect(tx).to.be.revertedWith('Governor: proposal not successful');
     });
 
-    it('address of the proposal target should remain zero on the governor', async () => {
+    it('address of the proposal target should remain unchanged on the governor', async () => {
       expect(await governor.proposalTarget()).to.equal(
-        hre.ethers.constants.AddressZero,
+        initPropTargAddrOnGovernor,
       );
     });
 
     it('voting period on the governor should remain unchanged', async () => {
-      expect(await governor.votingPeriod()).to.equal(currentVotingPeriod);
+      expect(await governor.votingPeriod()).to.equal(initVotingPeriod);
     });
   });
 
