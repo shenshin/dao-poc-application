@@ -1,16 +1,21 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
+const { v4: uuidv4 } = require('uuid');
 const { deployContract, skipBlocks, getSigners } = require('../../util');
-const { ProposalState, VoteType } = require('../constants.js');
+const { ProposalState, VoteType } = require('../../util/constants.js');
 
 describe('Governance - Successfull NFT voting', () => {
+  // voters
   let voters;
   let votersFor;
   let votersAgainst;
   let votersAbstain;
+
+  // smart contracts
   let rnsVoteToken;
   let governor;
   let proposalTarget;
+
   // proposal
   let proposal;
   let proposalId;

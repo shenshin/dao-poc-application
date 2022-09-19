@@ -4,9 +4,10 @@ const { v4: uuidv4 } = require('uuid');
 const {
   skipBlocks,
   getSigners,
-  deployFtSimple,
   constants: { ProposalState, VoteType },
 } = require('../../util');
+
+const { deployFtSimple } = require('../../util/deployments');
 
 describe('Governance - Defeated Fungible tokens voting', () => {
   // voters

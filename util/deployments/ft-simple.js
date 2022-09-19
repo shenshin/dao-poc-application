@@ -1,5 +1,5 @@
-const { getContract } = require('./functions.js');
-const rifTokenAbi = require('../abi/rifToken.json');
+const { getContract } = require('../functions.js');
+const rifTokenAbi = require('../../abi/rifToken.json');
 
 async function transferRifsToVoters(rifToken, voters) {
   const votingPower = '100000000000000000000';

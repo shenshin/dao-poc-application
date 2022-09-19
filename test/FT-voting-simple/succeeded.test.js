@@ -1,7 +1,8 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const { skipBlocks, getSigners, deployFtSimple } = require('../../util');
+const { skipBlocks, getSigners } = require('../../util');
+const { deployFtSimple } = require('../../util/deployments');
 const { ProposalState, VoteType } = require('../../util/constants.js');
 
 describe('Governance - Successfull Fungible tokens voting', () => {

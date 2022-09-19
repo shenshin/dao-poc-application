@@ -1,12 +1,8 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const {
-  deployFtQuadratic,
-  skipBlocks,
-  getSigners,
-  sqrtBN,
-} = require('../../util');
+const { skipBlocks, getSigners, sqrtBN } = require('../../util');
+const { deployFtQuadratic } = require('../../util/deployments');
 const { ProposalState, VoteType } = require('../../util/constants.js');
 
 describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
