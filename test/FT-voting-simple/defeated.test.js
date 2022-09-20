@@ -4,7 +4,8 @@ const { v4: uuidv4 } = require('uuid');
 const {
   skipBlocks,
   getSigners,
-  constants: { ProposalState, VoteType },
+  ProposalState,
+  VoteType,
 } = require('../../util');
 
 const { deployFtSimple } = require('../../util/deployments');
@@ -30,6 +31,8 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
+  // initial governor's parmeters should not be changed after
+  // proposal execution
   let initPropTargAddrOnGovernor;
   let initVotingPeriod;
 

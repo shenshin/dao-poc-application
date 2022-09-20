@@ -52,18 +52,23 @@ async function deployContractBy(name, deployer, ...params) {
 
 async function getContract({ name, abi, signer }, ...params) {
   const address = await readDeployedAddress(name);
+  const [deployer] = await hre.ethers.getSigners();
   let contract;
   if (address) {
     if (abi) {
       console.log(`Getting ${name} from ABI`);
-      contract = new hre.ethers.Contract(address.toLowerCase(), abi, signer);
+      contract = new hre.ethers.Contract(
+        address.toLowerCase(),
+        abi,
+        signer ?? deployer,
+      );
       contract.getContractAction = 'abiConnect';
     } else {
       console.log(`Getting ${name} from artifact`);
       contract = await hre.ethers.getContractAt(
         name,
         address.toLowerCase(),
-        signer,
+        signer ?? deployer,
       );
       contract.getContractAction = 'artifactConnect';
     }
@@ -71,7 +76,7 @@ async function getContract({ name, abi, signer }, ...params) {
       `Connected to ${name}, previously deployed at ${hre.network.name} with address ${address}`,
     );
   } else {
-    contract = await deployContractBy(name, signer, ...params);
+    contract = await deployContractBy(name, signer ?? deployer, ...params);
     if (hre.network.name !== 'hardhat')
       await writeDeployedAddress(name, contract.address);
     contract.getContractAction = 'deploy';
@@ -121,11 +126,7 @@ async function getSigners(from = 0, to = 20) {
 }
 
 async function getBalances(wallets) {
-  const rifToken = new hre.ethers.Contract(
-    hre.network.config.deployed.rif.toLowerCase(),
-    rifTokenAbi,
-    hre.ethers.provider,
-  );
+  const rifToken = await getContract({ name: 'RIFToken', abi: rifTokenAbi });
   const balances = await Promise.all(
     wallets.map(async (wallet) => ({
       walletId: wallet.walletId,
@@ -134,7 +135,7 @@ async function getBalances(wallets) {
       rifBalance: await rifToken.balanceOf(wallet.address),
     })),
   );
-  console.log(`Wallets balances:\n`);
+  console.log(`\nWallets balances:\n`);
   balances.forEach((balance) => {
     console.log(`${balance.walletId}: ${balance.address}`);
     console.log(`RBTC: ${hre.ethers.utils.formatEther(balance.rbtcBalance)}`);
