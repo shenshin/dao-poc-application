@@ -2,7 +2,7 @@ const { task } = require('hardhat/config');
 const { getBalances, getSigners, getContract } = require('../util');
 const rifFaucetAbi = require('../abi/rifFaucet.json');
 
-// connects to test RIF faucet and dispences the tokens to
+// connects to test RIF faucet and dispenses the tokens to
 // supplied wallets
 async function getTestRifs(wallets) {
   const rifFaucet = await getContract({
@@ -29,22 +29,22 @@ async function getTestRifs(wallets) {
     .filter((tx) => tx.status === 'rejected')
     .forEach((tx) => {
       console.log(
-        `Couldn't dispence RIF tokens for ${tx.reason.transaction.from}`,
+        `Couldn't dispense RIF tokens for ${tx.reason.transaction.from}`,
       );
     });
 }
 
 // Usage example:
-// `npx hardhat dispence --wallets 8 --network rsktestnet`
+// `npx hardhat dispense --wallets 8 --network rsktestnet`
 // will create 8 signers and dispence 10 test RIFs to each of them.
 // !important: select `rsktestnet`
 module.exports = task(
-  'dispence',
+  'dispense',
   'Get test RIF tokens from the RSK Testnet faucet',
 )
   .addOptionalParam(
     'wallets',
-    'Number of wallets to dispence RIFs',
+    'Number of wallets to dispense RIFs',
     20,
     types.int,
   )

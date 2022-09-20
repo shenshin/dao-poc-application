@@ -11,11 +11,12 @@ const {
 const { deployFtQuadratic } = require('../../util/deployments');
 
 describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
-  let voters;
   // contracts
+  let voters;
   let rifVoteToken;
   let governor;
   let proposalTarget;
+
   // proposal
   let proposal;
   let proposalId;
@@ -28,7 +29,7 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
 
   before(async () => {
     const signers = await getSigners(0, 4);
-    // skip deployer beacause he doesnt vote
+    // skip deployer because he doesn't vote
     voters = signers.slice(1);
     [rifVoteToken, governor, proposalTarget] = await deployFtQuadratic(signers);
     // store token balances
@@ -40,7 +41,7 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
     );
   });
 
-  describe('RIFVote upon depoyment', () => {
+  describe('RIFVote upon deployment', () => {
     it('voters should delegate voting power', async () => {
       await Promise.all(
         voters.map(async (voter) => {
@@ -54,10 +55,15 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
     });
   });
 
+  /**
+   * The proposal is:
+   * 1. To set a new voting period for the Governor
+   * 2. To set a new Proposal Target on the Governor
+   */
   describe('Proposal creation', () => {
     before(async () => {
       proposalDescription = uuidv4(); // always unique id
-      // calculating keccak256 hash of th proposal description
+      // calculating keccak256 hash of the proposal description
       proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
         ['string'],
         [proposalDescription],
@@ -182,7 +188,7 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
       expect(await governor.quorum(deadline)).to.equal(sqrtBN(totalVotes));
     });
 
-    it('Proposal should be successfull', async () => {
+    it('Proposal should be successful', async () => {
       expect(await governor.state(proposalId)).to.equal(
         ProposalState.Succeeded,
       );

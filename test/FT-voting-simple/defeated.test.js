@@ -31,7 +31,7 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  // initial governor's parmeters should not be changed after
+  // initial governor's parameters should not be changed after
   // proposal execution
   let initPropTargAddrOnGovernor;
   let initVotingPeriod;

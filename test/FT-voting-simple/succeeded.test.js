@@ -9,7 +9,7 @@ const {
 } = require('../../util');
 const { deployFtSimple } = require('../../util/deployments');
 
-describe('Governance - Successfull Fungible tokens voting', () => {
+describe('Governance - Successful Fungible tokens voting', () => {
   // voters
   let voters;
   let votersAgainst;
@@ -43,7 +43,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
     votersAbstain = voters.slice(5, 8); // 3 votes Abstain
   });
 
-  describe('RIF / RIFVote upon depoyment', () => {
+  describe('RIF / RIFVote upon deployment', () => {
     it('each voter should have at least 10 RIFs', async () => {
       await Promise.all(
         voters.map(async (voter) => {
@@ -251,7 +251,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
       );
     });
 
-    it('governore should store the given votes', async () => {
+    it('governor should store the given votes', async () => {
       const proposalVotes = await governor.proposalVotes(proposalId);
       expect(proposalVotes.againstVotes).to.equal(
         hre.ethers.BigNumber.from(votingPower).mul(votersAgainst.length),
@@ -275,7 +275,7 @@ describe('Governance - Successfull Fungible tokens voting', () => {
       expect(await governor.quorum(deadline)).to.equal(quorum);
     });
 
-    it('Proposal should be successfull', async () => {
+    it('Proposal should be successful', async () => {
       expect(await governor.state(proposalId)).to.equal(
         ProposalState.Succeeded,
       );

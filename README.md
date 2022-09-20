@@ -1,4 +1,4 @@
-# RSK Distributed Autonomous Organisation (DAO) Proof of Concept (POC) Application
+# RSK Distributed Autonomous Organization (DAO) Proof of Concept (POC) Application
 
 This project demonstrates how to create DAO on [RSK](https://developers.rsk.co/). The governance is carried out by:
 - Linear voting using RIF FT count

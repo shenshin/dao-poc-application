@@ -9,7 +9,7 @@ const {
 } = require('../../util');
 const { deployNftVoting } = require('../../util/deployments');
 
-describe('Governance - Successfull NFT voting', () => {
+describe('Governance - Successful NFT voting', () => {
   // voters
   let voters;
   let votersFor;

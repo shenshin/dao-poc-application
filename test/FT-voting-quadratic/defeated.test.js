@@ -24,6 +24,8 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
+  // initial governor's parameters should not be changed after
+  // proposal execution
   let initPropTargAddrOnGovernor;
   let initVotingPeriod;
 
@@ -31,7 +33,7 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
 
   before(async () => {
     const signers = await getSigners(0, 4);
-    // skip deployer beacause he doesnt vote
+    // skip deployer because he doesn't vote
     voters = signers.slice(1);
     [rifVoteToken, governor, proposalTarget] = await deployFtQuadratic(signers);
     initPropTargAddrOnGovernor = await governor.proposalTarget();
@@ -45,7 +47,7 @@ describe('Governance - Defeated Fungible tokens quadratic voting', () => {
     );
   });
 
-  describe('RIFVote upon depoyment', () => {
+  describe('RIFVote upon deployment', () => {
     it('voters should delegate voting power', async () => {
       await Promise.all(
         voters.map(async (voter) => {
