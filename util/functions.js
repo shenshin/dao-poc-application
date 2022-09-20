@@ -14,6 +14,11 @@ async function readDeployments() {
   return deployments;
 }
 
+async function writeDeployments(deployments) {
+  const file = hre.config.deploymentsFile;
+  return fs.writeFile(file, JSON.stringify(deployments), 'utf8');
+}
+
 async function readDeployedAddress(contractName) {
   const deployments = await readDeployments();
   return deployments?.[hre.network.name]?.[contractName];
@@ -25,9 +30,10 @@ async function writeDeployedAddress(contractName, address) {
     deployments[hre.network.name] = {};
   }
   deployments[hre.network.name][contractName] = address;
-  const file = hre.config.deploymentsFile;
-  await fs.writeFile(file, JSON.stringify(deployments), 'utf8');
-  console.log(`recorded ${contractName} address to ${file}`);
+  await writeDeployments(deployments);
+  console.log(
+    `recorded ${contractName} address to ${hre.config.deploymentsFile}`,
+  );
 }
 
 async function deployContract(name, ...params) {
@@ -166,4 +172,6 @@ module.exports = {
   readDeployedAddress,
   writeDeployedAddress,
   sqrtBN,
+  readDeployments,
+  writeDeployments,
 };

@@ -1,6 +1,8 @@
 const { join } = require('path');
 require('@nomicfoundation/hardhat-toolbox');
 require('./tasks/deploy.js');
+require('./tasks/dispence.js');
+require('./tasks/clean.js');
 // require('hardhat-contract-sizer');
 const { mnemonic } = require('./.secret.json');
 

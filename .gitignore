@@ -12,4 +12,3 @@ artifacts
 package-lock.json
 .secret.json
 .secret.leo.json
-deployments.json

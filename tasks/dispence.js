@@ -1,6 +1,9 @@
+const { task } = require('hardhat/config');
 const { getBalances, getSigners, getContract } = require('../util');
 const rifFaucetAbi = require('../abi/rifFaucet.json');
 
+// connects to test RIF faucet and dispences the tokens to
+// supplied wallets
 async function getTestRifs(wallets) {
   const rifFaucet = await getContract({
     name: 'RIFFaucet',
@@ -31,15 +34,26 @@ async function getTestRifs(wallets) {
     });
 }
 
-async function main() {
-  try {
-    const signers = await getSigners(0, 40);
-    await getBalances(signers);
-    await getTestRifs(signers);
-  } catch (error) {
-    console.error(error);
-    process.exitCode = 1;
-  }
-}
-
-main();
+// Usage example:
+// `npx hardhat dispence --wallets 8 --network rsktestnet`
+// will create 8 signers and dispence 10 test RIFs to each of them.
+// !important: select `rsktestnet`
+module.exports = task(
+  'dispence',
+  'Get test RIF tokens from the RSK Testnet faucet',
+)
+  .addOptionalParam(
+    'wallets',
+    'Number of wallets to dispence RIFs',
+    20,
+    types.int,
+  )
+  .setAction(async ({ wallets }) => {
+    try {
+      const signers = await getSigners(0, wallets);
+      await getBalances(signers);
+      await getTestRifs(signers);
+    } catch (error) {
+      console.log(error.message);
+    }
+  });
