@@ -39,7 +39,7 @@ See the networks details in `hardhat.config.js`
 ### Linear voting with fungible tokens / RIF tokens
 
 Before testing of voting with RIF tokens, make sure you have at least 10 RIFs on each voter account.
-You can run a `dispence` Hardhat task to get test RIF tokens for your accounts automatically.
+You can run a `dispense` Hardhat task to get test RIF tokens for your accounts automatically. The following command will dispense 10 RIFs to each of the 8 accounts (wallets) generated from your mnemonic phrase:
 ```shell
   npx hardhat dispense --wallets 8 --network rsktestnet
 ```
@@ -54,12 +54,12 @@ The following tests, launched on `rsktestnet` network demontrates how to:
 #### Successful case
 demonstrates the execution of succeeded voting with reached quorum:
 ```shell
-  npx hardhat test test/FT-voting-simple/succeeded.test.js --network rsktestnet
+  npx hardhat test test/FT-simple-voting/succeeded.test.js --network rsktestnet
 ```
 #### Failed case
 demonastrates the impossibility of execution of a defeated proposal voting:
 ```shell
-  npx hardhat test test/FT-voting-simple/defeated.test.js --network rsktestnet
+  npx hardhat test test/FT-simple-voting/defeated.test.js --network rsktestnet
 ```
 ### Quadratic voting with ERC20 Vote tokens
 Makes use of the original ERC20 Vote tokens (not wrapped) to vote for a proposal and calculates the voting power by taking a square root of the number of owned vote tokens.
@@ -73,11 +73,11 @@ These tests show how to:
 
 #### Successful case
 ```shell
-  npx hardhat test test/FT-voting-quadratic/succeeded.test.js --network rsktestnet
+  npx hardhat test test/FT-quadratic-voting/succeeded.test.js --network rsktestnet
 ```
 #### Failed case
 ```shell
-  npx hardhat test test/FT-voting-quadratic/defeated.test.js --network rsktestnet
+  npx hardhat test test/FT-quadratic-voting/defeated.test.js --network rsktestnet
 ```
 
 ### Boolean voting based on NFT
@@ -92,14 +92,21 @@ The tests demonstrate how to:
 
 #### Successful case
 ```shell
-  npx hardhat test test/NFT-voting/succeeded.test.js --network rsktestnet
+  npx hardhat test test/NFT-boolean-voting/succeeded.test.js --network rsktestnet
 ```
 #### Failed case
 ```shell
-  npx hardhat test test/NFT-voting/defeated.test.js --network rsktestnet
+  npx hardhat test test/NFT-boolean-voting/defeated.test.js --network rsktestnet
 ```
 
-### Cleanning the deployments and Hardhat artifacts
+### Running all the tests
+To run all the tests at once, type:
+```shell
+  npm test
+```
+but don't forget about getting some test RBTC and tokens.
+
+### Cleaning the deployments and Hardhat artifacts
 
 To delete all the recorded addresses of deployed smart contracts, use the `clean` task:
 ```shell

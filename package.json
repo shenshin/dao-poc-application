@@ -4,7 +4,7 @@
   "description": "Distributed Autonomous Organisation (DAO) Proof of Concept (POC) Application",
   "main": "index.js",
   "scripts": {
-    "test": "npx hardhat test"
+    "test": "npx hardhat test --network hardhat"
   },
   "repository": {
     "type": "git",

@@ -6,7 +6,7 @@ async function mintNftsForVoters(nft, voters) {
   console.log(`Minted NFTs for ${voters.length} voters`);
 }
 
-async function deployNftVoting(voters) {
+async function deployNftBoolean(voters) {
   const [deployer] = voters;
   const nftVoteToken = await getContract({ name: 'RNSVote', signer: deployer });
   if (nftVoteToken.getContractAction === 'deploy')
@@ -28,4 +28,4 @@ async function deployNftVoting(voters) {
   return [nftVoteToken, governor, target];
 }
 
-module.exports = deployNftVoting;
+module.exports = deployNftBoolean;
