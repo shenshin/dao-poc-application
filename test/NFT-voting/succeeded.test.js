@@ -1,16 +1,26 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
-const { deployContract, skipBlocks, getSigners } = require('../../util');
-const { ProposalState, VoteType } = require('../constants.js');
+const { v4: uuidv4 } = require('uuid');
+const {
+  skipBlocks,
+  getSigners,
+  ProposalState,
+  VoteType,
+} = require('../../util');
+const { deployNftVoting } = require('../../util/deployments');
 
-describe('Governance - Defeated NFT voting', () => {
+describe('Governance - Successful NFT voting', () => {
+  // voters
   let voters;
   let votersFor;
   let votersAgainst;
   let votersAbstain;
-  let rnsVoteToken;
+
+  // smart contracts
+  let voteToken;
   let governor;
   let proposalTarget;
+
   // proposal
   let proposal;
   let proposalId;
@@ -19,62 +29,49 @@ describe('Governance - Defeated NFT voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const currentVotingPeriod = 18; // blocks
   const newVotingPeriod = 33;
 
   before(async () => {
-    voters = getSigners(8);
-    votersFor = voters.slice(0, 2);
-    votersAbstain = voters.slice(2, 5);
-    votersAgainst = voters.slice(5);
-    rnsVoteToken = await deployContract('RNSVote');
-    governor = await deployContract('GovernorNFT', rnsVoteToken.address);
-    proposalTarget = await deployContract('ProposalTarget', governor.address);
+    voters = await getSigners(0, 8);
+    votersFor = voters.slice(0, 3);
+    votersAbstain = voters.slice(3, 6);
+    votersAgainst = voters.slice(6);
+    [voteToken, governor, proposalTarget] = await deployNftVoting(voters);
   });
 
   describe('Delegating voting power for the voters', () => {
-    it('should mint an NFT for each voter', async () => {
-      await (
-        await rnsVoteToken.safeMintBunch(voters.map((voter) => voter.address))
-      ).wait();
-      const balances = await Promise.all(
-        voters.map((voter) => rnsVoteToken.balanceOf(voter.address)),
+    it('each voter should own an NFT', async () => {
+      await Promise.all(
+        voters.map(async (voter) => {
+          expect(await voteToken.balanceOf(voter.address)).to.equal(1);
+        }),
       );
-      balances.forEach((balance) => expect(balance).to.equal(1));
     });
 
     it('voters should not have voting power before delegating it', async () => {
-      const voteBalances = await Promise.all(
-        voters.map((voter) => rnsVoteToken.getVotes(voter.address)),
+      await Promise.all(
+        voters.map(async (voter) => {
+          expect(await voteToken.getVotes(voter.address)).to.equal(0);
+        }),
       );
-      voteBalances.forEach((balance) => expect(balance).to.equal(0));
     });
 
     it('RNSVote token holders should self-delegate the voting power', async () => {
       await Promise.all(
-        voters.map((voter) =>
-          expect(rnsVoteToken.connect(voter).delegate(voter.address))
-            .to.emit(rnsVoteToken, 'DelegateChanged')
-            .withArgs(
-              voter.address,
-              hre.ethers.constants.AddressZero,
-              voter.address,
-            ),
-        ),
+        voters.map(async (voter) => {
+          const tx = await voteToken.connect(voter).delegate(voter.address);
+          await tx.wait();
+          expect(
+            await voteToken.connect(voter).getVotes(voter.address),
+          ).to.equal(1);
+        }),
       );
-    });
-
-    it('voters should have voting power after the delegation', async () => {
-      const voteBalances = await Promise.all(
-        voters.map((voter) => rnsVoteToken.getVotes(voter.address)),
-      );
-      voteBalances.forEach((balance) => expect(balance).to.equal(1));
     });
   });
 
   describe('Proposal creation', () => {
     before(async () => {
-      proposalDescription = 'Change the voting period and set proposal target';
+      proposalDescription = uuidv4(); // always unique id
       // calculating keccak256 hash of th proposal description
       proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
         ['string'],
@@ -95,11 +92,23 @@ describe('Governance - Defeated NFT voting', () => {
         [0, 0],
         [newVotingPeriodCalldata, setTargetCalldata],
       ];
-      // get proposal ID before creating the proposal
-      proposalId = await governor.hashProposal(
+      // get proposal ID before creating a proposal
+      proposalId = hre.ethers.BigNumber.from(
+        hre.ethers.utils.keccak256(
+          hre.ethers.utils.defaultAbiCoder.encode(
+            ['address[]', 'uint256[]', 'bytes[]', 'bytes32'],
+            [...proposal, proposalDescriptionHash],
+          ),
+        ),
+      );
+    });
+
+    it('proposal ID should be correct', async () => {
+      const governorProposalId = await governor.hashProposal(
         ...proposal,
         proposalDescriptionHash,
       );
+      expect(governorProposalId).to.equal(proposalId);
     });
 
     it('voter 1 should be able to create a proposal', async () => {
@@ -117,16 +126,19 @@ describe('Governance - Defeated NFT voting', () => {
 
   describe('Voting', () => {
     it('voters should not have voted yet', async () => {
-      const results = await Promise.all(
-        voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
+      await Promise.all(
+        voters.map(async (voter) => {
+          expect(
+            await governor.connect(voter).hasVoted(proposalId, voter.address),
+          ).to.be.false;
+        }),
       );
-      results.forEach((hasVoted) => expect(hasVoted).to.be.false);
     });
 
     it('Voters should vote for', async () => {
       await skipBlocks(1);
       const reason = '';
-      const votePower = 1;
+      const votingPower = 1;
       await Promise.all(
         votersFor.map((voter) =>
           expect(governor.connect(voter).castVote(proposalId, VoteType.For))
@@ -135,7 +147,7 @@ describe('Governance - Defeated NFT voting', () => {
               voter.address,
               proposalId,
               VoteType.For,
-              votePower,
+              votingPower,
               reason,
             ),
         ),
@@ -179,10 +191,13 @@ describe('Governance - Defeated NFT voting', () => {
     });
 
     it('voters should have finished voting', async () => {
-      const results = await Promise.all(
-        voters.map((voter) => governor.hasVoted(proposalId, voter.address)),
+      await Promise.all(
+        voters.map(async (voter) => {
+          expect(
+            await governor.connect(voter).hasVoted(proposalId, voter.address),
+          ).to.be.true;
+        }),
       );
-      results.forEach((hasVoted) => expect(hasVoted).to.be.true);
     });
   });
 
@@ -195,29 +210,37 @@ describe('Governance - Defeated NFT voting', () => {
     });
 
     it('should calculate the quorum correctly', async () => {
-      const quorum = await governor.quorum(
-        (await hre.ethers.provider.getBlockNumber()) - 1,
-      );
+      const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
+      const currentBlock = await hre.ethers.provider.getBlockNumber();
+      await skipBlocks(deadline - currentBlock + 1);
+      const quorum = await governor.quorum(deadline);
       // 4%
       expect(quorum).to.equal(Math.floor(voters.length / 100) * 4);
     });
 
-    it('Proposal should be defeated', async () => {
-      const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
-      const currentBlock = await hre.ethers.provider.getBlockNumber();
-      await skipBlocks(deadline - currentBlock + 1);
-      expect(await governor.state(proposalId)).to.equal(ProposalState.Defeated);
+    it('Proposal should be succeeded', async () => {
+      expect(await governor.state(proposalId)).to.equal(
+        ProposalState.Succeeded,
+      );
     });
   });
 
   describe('Proposal execution', () => {
-    it('should not be able to execute the defeated Proposal', async () => {
+    it('should execute the proposal and call its target contract', async () => {
       const tx = governor.execute(...proposal, proposalDescriptionHash);
-      await expect(tx).to.be.revertedWith('Governor: proposal not successful');
+      await expect(tx)
+        .to.emit(proposalTarget, 'ProposalProcessed')
+        .withArgs(proposalId);
     });
 
-    it('voting period should not be updated on the governor', async () => {
-      expect(await governor.votingPeriod()).to.equal(currentVotingPeriod);
+    it('address of the proposal target should be set on the governor', async () => {
+      expect(await governor.proposalTarget()).to.equal(
+        hre.ethers.utils.getAddress(proposalTarget.address),
+      );
+    });
+
+    it('voting period should be updated on the governor', async () => {
+      expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
     });
   });
 });

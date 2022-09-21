@@ -1,5 +1,9 @@
+const { join } = require('path');
 require('@nomicfoundation/hardhat-toolbox');
-require('hardhat-contract-sizer');
+require('./tasks/deploy.js');
+require('./tasks/dispense.js');
+require('./tasks/clean.js');
+// require('hardhat-contract-sizer');
 const { mnemonic } = require('./.secret.json');
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -14,6 +18,7 @@ module.exports = {
       },
     ],
   },
+  defaultNetwork: 'rsktestnet',
   networks: {
     hardhat: {},
     rskregtest: {
@@ -29,19 +34,14 @@ module.exports = {
         path: "m/44'/60'/0'/0",
       },
     },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/637a166b44254d19830b8b60ea60a67b`,
-      accounts: {
-        mnemonic,
-      },
-    },
   },
   mocha: {
     timeout: 6000000,
   },
-  contractSizer: {
+  deploymentsFile: join(__dirname, 'deployments.json'),
+  /*   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false,
-  },
+  }, */
 };
