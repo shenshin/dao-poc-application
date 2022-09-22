@@ -8,7 +8,7 @@ const {
   ProposalState,
   VoteType,
 } = require('../../util');
-const { deployFtQuadratic } = require('../../util/deployments');
+const { deployFtQuadratic } = require('../../deploy/scripts');
 
 describe('Governance - Defeated Fungible tokens quadratic voting', () => {
   let voters;

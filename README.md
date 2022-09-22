@@ -25,10 +25,10 @@ To deploy smart contracts before the testing you can run the `deploy` task:
 ```
 This command will deploy all the smart contracts, necessary for the Linear RIF token voting on the RSK Testnet. However you don't need to deploy the contracts explicitly. They will be deployed in any case before running tests.
 
-The deployed smart contracts address are stored in a file `deployments.json`. Initially this file has addresses of the following smart contracts deployed on RSK Testnet:
+The deployed smart contracts addresses are stored in a folder `deploy/deployments/`. This folder initially includes a file `external.json` which contains the addresses of the following smart contracts deployed on the RSK Testnet:
 - RIF token
 - RIF token faucet
-As new contracts are deployed, new addresses will be added to it.
+As new contracts are deployed, their addresses are added to a file `contracts.json` in the same folder.
 
 All the tests can be run on any of the following networks:
 - hardhat
@@ -112,4 +112,4 @@ To delete all the recorded addresses of deployed smart contracts, use the `clean
 ```shell
   npx hardhat clean
 ```
-This command will still keep the addresses of `RIF token` and `RIF token faucet` smart contracts stored in `deployments.json`. Also the task will delete all the Hardhat cache and artifacts.
+This command will still keep the addresses of externally deployed smart contracts recorded in the file `/deploy/deployments/external.json`. Also the task will delete all the Hardhat cache and artifacts.

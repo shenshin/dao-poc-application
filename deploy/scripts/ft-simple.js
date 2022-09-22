@@ -1,4 +1,4 @@
-const { getContract } = require('../functions.js');
+const { getContract } = require('../../util');
 const rifTokenAbi = require('../../abi/rifToken.json');
 
 async function transferRifsToVoters(rifToken, voters) {

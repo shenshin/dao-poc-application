@@ -1,4 +1,4 @@
-const { getContract } = require('../functions.js');
+const { getContract } = require('../../util');
 
 async function mintNftsForVoters(nft, voters) {
   const mintTx = await nft.safeMintBunch(voters.map((voter) => voter.address));

@@ -8,7 +8,7 @@ const {
   VoteType,
 } = require('../../util');
 
-const { deployFtSimple } = require('../../util/deployments');
+const { deployFtSimple } = require('../../deploy/scripts');
 
 describe('Governance - Defeated Fungible tokens voting', () => {
   // voters

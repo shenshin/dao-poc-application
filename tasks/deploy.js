@@ -4,7 +4,7 @@ const {
   deployFtQuadratic,
   deployFtSimple,
   deployNftBoolean,
-} = require('../util/deployments');
+} = require('../deploy/scripts');
 
 // deploy smart contracts from the
 // 'ft-simple', 'ft-quadratic' and 'nft-boolean' voting

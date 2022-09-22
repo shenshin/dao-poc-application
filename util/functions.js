@@ -1,60 +1,10 @@
-const fs = require('fs/promises');
 const { mine } = require('@nomicfoundation/hardhat-network-helpers');
+const {
+  deployContractBy,
+  writeDeployedAddress,
+  readDeployedAddress,
+} = require('../deploy');
 const rifTokenAbi = require('../abi/rifToken.json');
-
-async function readDeployments() {
-  let deployments;
-  try {
-    deployments = JSON.parse(
-      await fs.readFile(hre.config.deploymentsFile, 'utf8'),
-    );
-  } catch (error) {
-    deployments = {};
-  }
-  return deployments;
-}
-
-async function writeDeployments(deployments) {
-  const file = hre.config.deploymentsFile;
-  return fs.writeFile(file, JSON.stringify(deployments), 'utf8');
-}
-
-async function readDeployedAddress(contractName) {
-  const deployments = await readDeployments();
-  return deployments?.[hre.network.name]?.[contractName];
-}
-
-async function writeDeployedAddress(contractName, address) {
-  const deployments = await readDeployments();
-  if (!(hre.network.name in deployments)) {
-    deployments[hre.network.name] = {};
-  }
-  deployments[hre.network.name][contractName] = address;
-  await writeDeployments(deployments);
-  console.log(
-    `recorded ${contractName} address to ${hre.config.deploymentsFile}`,
-  );
-}
-
-async function deployContract(name, ...params) {
-  const ContractFactory = await ethers.getContractFactory(name);
-  const contract = await ContractFactory.deploy(...params);
-  await contract.deployed();
-  console.log(
-    `${name} was deployed at ${hre.network.name} with address ${contract.address}`,
-  );
-  return contract;
-}
-
-async function deployContractBy(name, deployer, ...params) {
-  const ContractFactory = await ethers.getContractFactory(name);
-  const contract = await ContractFactory.connect(deployer).deploy(...params);
-  await contract.deployed();
-  console.log(
-    `${name} was deployed by ${deployer.address} at ${hre.network.name} with address ${contract.address}`,
-  );
-  return contract;
-}
 
 async function getContract({ name, abi, signer }, ...params) {
   const address = await readDeployedAddress(name);
@@ -163,15 +113,9 @@ function sqrtBN(value) {
 }
 
 module.exports = {
-  deployContract,
-  deployContractBy,
   skipBlocks,
   getSigners,
   getBalances,
   getContract,
-  readDeployedAddress,
-  writeDeployedAddress,
   sqrtBN,
-  readDeployments,
-  writeDeployments,
 };

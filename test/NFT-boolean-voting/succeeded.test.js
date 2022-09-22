@@ -7,7 +7,7 @@ const {
   ProposalState,
   VoteType,
 } = require('../../util');
-const { deployNftBoolean } = require('../../util/deployments');
+const { deployNftBoolean } = require('../../deploy/scripts');
 
 describe('Governance - Successful NFT voting', () => {
   // voters
