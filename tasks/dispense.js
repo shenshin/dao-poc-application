@@ -36,7 +36,7 @@ async function getTestRifs(wallets) {
 
 // Usage example:
 // `npx hardhat dispense --wallets 8 --network rsktestnet`
-// will create 8 signers and dispence 10 test RIFs to each of them.
+// will create 8 signers and dispense 10 test RIFs to each of them.
 // !important: select `rsktestnet`
 module.exports = task(
   'dispense',

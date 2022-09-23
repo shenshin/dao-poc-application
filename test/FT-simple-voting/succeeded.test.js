@@ -7,10 +7,9 @@ const {
   ProposalState,
   VoteType,
 } = require('../../util');
+const { deployFtSimple } = require('../../deploy/scripts');
 
-const { deployFtSimple } = require('../../util/deployments');
-
-describe('Governance - Defeated Fungible tokens voting', () => {
+describe('Governance - Successful Fungible tokens voting', () => {
   // voters
   let voters;
   let votersAgainst;
@@ -31,11 +30,6 @@ describe('Governance - Defeated Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  // initial governor's parameters should not be changed after
-  // proposal execution
-  let initPropTargAddrOnGovernor;
-  let initVotingPeriod;
-
   const votingPower = hre.ethers.BigNumber.from('100000000000000000000'); // 10 RIFs
   const newVotingPeriod = 33; // blocks
 
@@ -44,14 +38,12 @@ describe('Governance - Defeated Fungible tokens voting', () => {
     [rifToken, rifVoteToken, governor, proposalTarget] = await deployFtSimple(
       voters,
     );
-    initPropTargAddrOnGovernor = await governor.proposalTarget();
-    initVotingPeriod = await governor.votingPeriod();
-    votersAgainst = voters.slice(0, 4); // 40 votes Against
-    votersFor = voters.slice(4, 7); // 30 votes For
-    votersAbstain = voters.slice(7, 8); // 10 votes Abstain
+    votersAgainst = voters.slice(0, 2); // 20 votes Against
+    votersFor = voters.slice(2, 5); // 30 votes For
+    votersAbstain = voters.slice(5, 8); // 3 votes Abstain
   });
 
-  describe('RIF / RIFVote upon depoyment', () => {
+  describe('RIF / RIFVote upon deployment', () => {
     it('each voter should have at least 10 RIFs', async () => {
       await Promise.all(
         voters.map(async (voter) => {
@@ -259,7 +251,7 @@ describe('Governance - Defeated Fungible tokens voting', () => {
       );
     });
 
-    it('governore should store the given votes', async () => {
+    it('governor should store the given votes', async () => {
       const proposalVotes = await governor.proposalVotes(proposalId);
       expect(proposalVotes.againstVotes).to.equal(
         hre.ethers.BigNumber.from(votingPower).mul(votersAgainst.length),
@@ -283,23 +275,27 @@ describe('Governance - Defeated Fungible tokens voting', () => {
       expect(await governor.quorum(deadline)).to.equal(quorum);
     });
 
-    it('Proposal should be defeated', async () => {
-      expect(await governor.state(proposalId)).to.equal(ProposalState.Defeated);
-    });
-
-    it('should not be able to execute the defeated Proposal', async () => {
-      const tx = governor.execute(...proposal, proposalDescriptionHash);
-      await expect(tx).to.be.revertedWith('Governor: proposal not successful');
-    });
-
-    it('address of the proposal target should remain unchanged on the governor', async () => {
-      expect(await governor.proposalTarget()).to.equal(
-        initPropTargAddrOnGovernor,
+    it('Proposal should be successful', async () => {
+      expect(await governor.state(proposalId)).to.equal(
+        ProposalState.Succeeded,
       );
     });
 
-    it('voting period on the governor should remain unchanged', async () => {
-      expect(await governor.votingPeriod()).to.equal(initVotingPeriod);
+    it('should execute the Proposal and call its target contract', async () => {
+      const tx = governor.execute(...proposal, proposalDescriptionHash);
+      await expect(tx)
+        .to.emit(proposalTarget, 'ProposalProcessed')
+        .withArgs(proposalId);
+    });
+
+    it('address of the proposal target should be set on the governor', async () => {
+      expect(await governor.proposalTarget()).to.equal(
+        hre.ethers.utils.getAddress(proposalTarget.address),
+      );
+    });
+
+    it('voting period should be updated on the governor', async () => {
+      expect(await governor.votingPeriod()).to.equal(newVotingPeriod);
     });
   });
 

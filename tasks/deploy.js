@@ -3,11 +3,11 @@ const { getSigners } = require('../util');
 const {
   deployFtQuadratic,
   deployFtSimple,
-  deployNftVoting,
-} = require('../util/deployments');
+  deployNftBoolean,
+} = require('../deploy/scripts');
 
 // deploy smart contracts from the
-// 'ft-simple', 'ft-quadratic' and 'nft' voting
+// 'ft-simple', 'ft-quadratic' and 'nft-boolean' voting
 
 // Usage example:
 // `npx hardhat deploy --type ft-quadratic --voters 4 --network rskregtest`
@@ -15,7 +15,7 @@ const {
 module.exports = task('deploy', 'Deploys DAO smart contracts')
   .addParam(
     'type',
-    `Select smart contracts set from 'ft-simple', 'ft-quadratic', 'nft'`,
+    `Select smart contracts set from 'ft-simple', 'ft-quadratic', 'nft-boolean'`,
   )
   .addOptionalParam('voters', 'Number of voters', 8, types.int)
   .setAction(async ({ voters: votersNumber, type }, hre) => {
@@ -29,8 +29,8 @@ module.exports = task('deploy', 'Deploys DAO smart contracts')
         case 'ft-quadratic':
           await deployFtQuadratic(voters);
           return;
-        case 'nft':
-          await deployNftVoting(voters);
+        case 'nft-boolean':
+          await deployNftBoolean(voters);
           return;
         default:
           throw new Error('Unknown voting type');

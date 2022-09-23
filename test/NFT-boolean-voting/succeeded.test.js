@@ -7,7 +7,7 @@ const {
   ProposalState,
   VoteType,
 } = require('../../util');
-const { deployNftVoting } = require('../../util/deployments');
+const { deployNftBoolean } = require('../../deploy/scripts');
 
 describe('Governance - Successful NFT voting', () => {
   // voters
@@ -36,7 +36,7 @@ describe('Governance - Successful NFT voting', () => {
     votersFor = voters.slice(0, 3);
     votersAbstain = voters.slice(3, 6);
     votersAgainst = voters.slice(6);
-    [voteToken, governor, proposalTarget] = await deployNftVoting(voters);
+    [voteToken, governor, proposalTarget] = await deployNftBoolean(voters);
   });
 
   describe('Delegating voting power for the voters', () => {

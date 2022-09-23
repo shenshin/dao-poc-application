@@ -1,4 +1,3 @@
-const { join } = require('path');
 require('@nomicfoundation/hardhat-toolbox');
 require('./tasks/deploy.js');
 require('./tasks/dispense.js');
@@ -38,7 +37,6 @@ module.exports = {
   mocha: {
     timeout: 6000000,
   },
-  deploymentsFile: join(__dirname, 'deployments.json'),
   /*   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
