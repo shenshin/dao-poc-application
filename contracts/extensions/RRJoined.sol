@@ -5,7 +5,7 @@ import '@openzeppelin/contracts/governance/IGovernor.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '../FT-voting-simple/RIFVoteToken.sol';
 
-contract RevenueRedistributor {
+contract RevenueRedistributorJoined {
     struct Redistribution {
         // rd expiration time
         uint256 endsAt;
@@ -107,12 +107,3 @@ contract RevenueRedistributor {
     }
 }
 
-/* contract Redistribution {
-    uint256 public immutable endsAt;
-
-    constructor(
-        uint256 _endsAt
-    ) {
-        endsAt = _endsAt;
-    }
-} */
