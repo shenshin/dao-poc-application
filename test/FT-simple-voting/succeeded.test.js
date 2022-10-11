@@ -1,12 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const {
-  skipBlocks,
-  getSigners,
-  ProposalState,
-  VoteType,
-} = require('../../util');
+const { skipBlocks, ProposalState, VoteType } = require('../../util');
 const { deployFtSimple } = require('../../deploy/scripts');
 
 describe('Governance - Successful Fungible tokens voting', () => {
@@ -30,11 +25,11 @@ describe('Governance - Successful Fungible tokens voting', () => {
   let newVotingPeriodCalldata;
   let setTargetCalldata;
 
-  const votingPower = hre.ethers.BigNumber.from('100000000000000000000'); // 10 RIFs
+  const votingPower = hre.ethers.BigNumber.from(10n ** 20n); // 10 RIFs
   const newVotingPeriod = 33; // blocks
 
   before(async () => {
-    voters = await getSigners(0, 8); // 8 voters
+    voters = (await hre.ethers.getSigners()).slice(0, 8); // 8 voters
     [rifToken, rifVoteToken, governor, proposalTarget] = await deployFtSimple(
       voters,
     );

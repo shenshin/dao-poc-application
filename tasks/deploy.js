@@ -1,5 +1,4 @@
 const { task } = require('hardhat/config');
-const { getSigners } = require('../util');
 const {
   deployFtQuadratic,
   deployFtSimple,
@@ -21,7 +20,7 @@ module.exports = task('deploy', 'Deploys DAO smart contracts')
   .setAction(async ({ voters: votersNumber, type }, hre) => {
     try {
       await hre.run('compile');
-      const voters = await getSigners(0, votersNumber);
+      const voters = (await hre.ethers.getSigners()).slice(0, votersNumber);
       switch (type) {
         case 'ft-simple':
           await deployFtSimple(voters);

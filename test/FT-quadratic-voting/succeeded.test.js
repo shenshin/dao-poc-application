@@ -1,13 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const {
-  skipBlocks,
-  getSigners,
-  sqrtBN,
-  ProposalState,
-  VoteType,
-} = require('../../util');
+const { skipBlocks, sqrtBN, ProposalState, VoteType } = require('../../util');
 const { deployFtQuadratic } = require('../../deploy/scripts');
 
 describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
@@ -28,7 +22,7 @@ describe('Governance - Succeeded Fungible tokens quadratic voting', () => {
   const newVotingPeriod = 44;
 
   before(async () => {
-    const signers = await getSigners(0, 4);
+    const signers = (await hre.ethers.getSigners()).slice(0, 4);
     // skip deployer because he doesn't vote
     voters = signers.slice(1);
     [rifVoteToken, governor, proposalTarget] = await deployFtQuadratic(signers);

@@ -1,30 +1,39 @@
 const { mine } = require('@nomicfoundation/hardhat-network-helpers');
+const { readFile } = require('fs/promises');
+const { join } = require('path');
 const {
   deployContractBy,
   writeDeployedAddress,
   readDeployedAddress,
 } = require('../deploy');
-const rifTokenAbi = require('../abi/rifToken.json');
 
-async function getContract({ name, abi, signer }, ...params) {
-  const address = await readDeployedAddress(name);
-  const [deployer] = await hre.ethers.getSigners();
+async function getAbi(name) {
+  let abi;
+  try {
+    const fileName = join(__dirname, '..', 'abi', `${name}.json`);
+    abi = JSON.parse(await readFile(fileName, 'utf8'));
+  } catch (error) {
+    // do nothing
+  }
+  return abi;
+}
+
+async function getContract(name, ...params) {
+  const [signer] = await hre.ethers.getSigners();
   let contract;
+  const address = await readDeployedAddress(name);
   if (address) {
+    const abi = await getAbi(name);
     if (abi) {
       console.log(`Getting ${name} from ABI`);
-      contract = new hre.ethers.Contract(
-        address.toLowerCase(),
-        abi,
-        signer ?? deployer,
-      );
+      contract = new hre.ethers.Contract(address.toLowerCase(), abi, signer);
       contract.getContractAction = 'abiConnect';
     } else {
       console.log(`Getting ${name} from artifact`);
       contract = await hre.ethers.getContractAt(
         name,
         address.toLowerCase(),
-        signer ?? deployer,
+        signer,
       );
       contract.getContractAction = 'artifactConnect';
     }
@@ -32,7 +41,7 @@ async function getContract({ name, abi, signer }, ...params) {
       `Connected to ${name}, previously deployed at ${hre.network.name} with address ${address}`,
     );
   } else {
-    contract = await deployContractBy(name, signer ?? deployer, ...params);
+    contract = await deployContractBy(name, signer, ...params);
     if (hre.network.name !== 'hardhat')
       await writeDeployedAddress(name, contract.address);
     contract.getContractAction = 'deploy';
@@ -57,35 +66,10 @@ function skipBlocks(blocksToSkip) {
   });
 }
 
-async function getSigners(from = 0, to = 20) {
-  if (from < 0 || to <= from) throw new Error('Invalid wallet numbers');
-  const { mnemonic, path } = hre.network.config.accounts;
-  let signers = [];
-  if (mnemonic && path) {
-    for (let i = from; i < to; i += 1) {
-      const wallet = hre.ethers.Wallet.fromMnemonic(
-        mnemonic,
-        `${path}/${i}`,
-      ).connect(hre.ethers.provider);
-      wallet.walletId = i;
-      signers.push(wallet);
-    }
-  } else {
-    signers = await hre.ethers.getSigners();
-    signers.forEach((signer, walletId) => {
-      // eslint-disable-next-line no-param-reassign
-      signer.walletId = walletId;
-    });
-    signers = signers.slice(from, to);
-  }
-  return signers;
-}
-
 async function getBalances(wallets) {
-  const rifToken = await getContract({ name: 'RIFToken', abi: rifTokenAbi });
+  const rifToken = await getContract('RIFToken');
   const balances = await Promise.all(
     wallets.map(async (wallet) => ({
-      walletId: wallet.walletId,
       address: wallet.address,
       rbtcBalance: await hre.ethers.provider.getBalance(wallet.address),
       rifBalance: await rifToken.balanceOf(wallet.address),
@@ -114,7 +98,6 @@ function sqrtBN(value) {
 
 module.exports = {
   skipBlocks,
-  getSigners,
   getBalances,
   getContract,
   sqrtBN,

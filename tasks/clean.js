@@ -10,6 +10,10 @@ module.exports = task(
   'Cleans the cache, deletes all artifacts and deployments',
   async (args, hre, runSuper) => {
     await runSuper();
-    await fs.rm(files.contracts);
+    try {
+      await fs.rm(files.contracts);
+    } catch (error) {
+      // do nothing
+    }
   },
 );
