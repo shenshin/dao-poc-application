@@ -22,25 +22,18 @@ async function transferTokensToVoters(rifToken, voters) {
 }
 
 async function deployFtQuadratic(voters) {
-  const [deployer] = voters;
   const rifVoteToken = await getContract(
-    { name: 'QuadraticVoteToken', signer: deployer },
+    'QuadraticVoteToken',
     '10101000000000000000000',
   );
   if (rifVoteToken.getContractAction === 'deploy')
     await transferTokensToVoters(rifVoteToken, voters);
   const governor = await getContract(
-    {
-      name: 'GovernorFtQuadratic',
-      signer: deployer,
-    },
+    'GovernorFtQuadratic',
     rifVoteToken.address,
   );
   const proposalTarget = await getContract(
-    {
-      name: 'ProposalTargetQuadratic',
-      signer: deployer,
-    },
+    'ProposalTargetQuadratic',
     governor.address,
   );
   return [rifVoteToken, governor, proposalTarget];

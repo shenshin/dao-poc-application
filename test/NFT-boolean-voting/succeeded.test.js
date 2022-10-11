@@ -1,12 +1,7 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
-const {
-  skipBlocks,
-  getSigners,
-  ProposalState,
-  VoteType,
-} = require('../../util');
+const { skipBlocks, ProposalState, VoteType } = require('../../util');
 const { deployNftBoolean } = require('../../deploy/scripts');
 
 describe('Governance - Successful NFT voting', () => {
@@ -32,7 +27,7 @@ describe('Governance - Successful NFT voting', () => {
   const newVotingPeriod = 33;
 
   before(async () => {
-    voters = await getSigners(0, 8);
+    voters = (await hre.ethers.getSigners()).slice(0, 8);
     votersFor = voters.slice(0, 3);
     votersAbstain = voters.slice(3, 6);
     votersAgainst = voters.slice(6);

@@ -17,7 +17,7 @@ module.exports = {
       },
     ],
   },
-  defaultNetwork: 'rsktestnet',
+  defaultNetwork: 'hardhat',
   networks: {
     hardhat: {},
     rskregtest: {

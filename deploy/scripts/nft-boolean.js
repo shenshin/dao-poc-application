@@ -7,23 +7,13 @@ async function mintNftsForVoters(nft, voters) {
 }
 
 async function deployNftBoolean(voters) {
-  const [deployer] = voters;
-  const nftVoteToken = await getContract({ name: 'RNSVote', signer: deployer });
+  const nftVoteToken = await getContract('RNSVote');
   if (nftVoteToken.getContractAction === 'deploy')
     await mintNftsForVoters(nftVoteToken, voters);
 
-  const governor = await getContract(
-    { name: 'GovernorNFT', signer: deployer },
-    nftVoteToken.address,
-  );
+  const governor = await getContract('GovernorNFT', nftVoteToken.address);
 
-  const target = await getContract(
-    {
-      name: 'ProposalTargetNFT',
-      signer: deployer,
-    },
-    governor.address,
-  );
+  const target = await getContract('ProposalTargetNFT', governor.address);
 
   return [nftVoteToken, governor, target];
 }

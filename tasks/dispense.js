@@ -1,14 +1,10 @@
 const { task } = require('hardhat/config');
-const { getBalances, getSigners, getContract } = require('../util');
-const rifFaucetAbi = require('../abi/rifFaucet.json');
+const { getBalances, getContract } = require('../util');
 
 // connects to test RIF faucet and dispenses the tokens to
 // supplied wallets
 async function getTestRifs(wallets) {
-  const rifFaucet = await getContract({
-    name: 'RIFFaucet',
-    abi: rifFaucetAbi,
-  });
+  const rifFaucet = await getContract('RIFFaucet');
 
   const txs = await Promise.allSettled(
     wallets.map(async (wallet) => {
@@ -50,7 +46,7 @@ module.exports = task(
   )
   .setAction(async ({ wallets }) => {
     try {
-      const signers = await getSigners(0, wallets);
+      const signers = (await hre.ethers.getSigners()).slice(0, wallets);
       await getBalances(signers);
       await getTestRifs(signers);
     } catch (error) {

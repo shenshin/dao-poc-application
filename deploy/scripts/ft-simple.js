@@ -1,8 +1,7 @@
 const { getContract } = require('../../util');
-const rifTokenAbi = require('../../abi/rifToken.json');
 
 async function transferRifsToVoters(rifToken, voters) {
-  const votingPower = '100000000000000000000';
+  const votingPower = 10n ** 20n;
   async function transferRifs(wallets = []) {
     const [voter] = wallets;
     if (voter) {
@@ -16,39 +15,13 @@ async function transferRifsToVoters(rifToken, voters) {
 }
 
 async function deployFtSimple(voters) {
-  const [deployer] = voters;
-  const rifToken = await getContract(
-    {
-      name: 'RIFToken',
-      abi: rifTokenAbi,
-      signer: deployer,
-    },
-    '1000000000000000000000000000',
-  );
+  const rifToken = await getContract('RIFToken', 10n ** 27n);
   if (rifToken.getContractAction === 'deploy')
     await transferRifsToVoters(rifToken, voters);
 
-  const rifVoteToken = await getContract(
-    {
-      name: 'RIFVoteToken',
-      signer: deployer,
-    },
-    rifToken.address,
-  );
-  const governor = await getContract(
-    {
-      name: 'GovernorFT',
-      signer: deployer,
-    },
-    rifVoteToken.address,
-  );
-  const proposalTarget = await getContract(
-    {
-      name: 'ProposalTarget',
-      signer: deployer,
-    },
-    governor.address,
-  );
+  const rifVoteToken = await getContract('RIFVoteToken', rifToken.address);
+  const governor = await getContract('GovernorFT', rifVoteToken.address);
+  const proposalTarget = await getContract('ProposalTarget', governor.address);
   return [rifToken, rifVoteToken, governor, proposalTarget];
 }
 
