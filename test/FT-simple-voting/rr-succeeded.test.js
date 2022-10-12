@@ -40,4 +40,45 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       expect(await rr.voteToken()).to.equal(rifVoteToken.address);
     });
   });
+
+  describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
+    before(async () => {
+      // approval
+      await Promise.all(
+        voters.map((voter) =>
+          rifToken
+            .connect(voter)
+            .approve(rifVoteToken.address, votingPower)
+            .then((tx) => tx.wait()),
+        ),
+      );
+      // mint vote tokens
+      await Promise.all(
+        voters.map((voter) =>
+          rifVoteToken
+            .connect(voter)
+            .depositFor(voter.address, votingPower)
+            .then((tx) => tx.wait()),
+        ),
+      );
+      // delegate voting power
+      await Promise.all(
+        voters.map((voter) =>
+          rifVoteToken
+            .connect(voter)
+            .delegate(voter.address)
+            .then((tx) => tx.wait()),
+        ),
+      );
+    });
+    it('voters should have voting power', async () => {
+      await Promise.all(
+        voters.map(async (voter) => {
+          expect(
+            await rifVoteToken.connect(voter).getVotes(voter.address),
+          ).to.equal(votingPower);
+        }),
+      );
+    });
+  });
 });
