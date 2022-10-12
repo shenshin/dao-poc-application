@@ -10,9 +10,9 @@ describe('Governance - Revenue Redistribution - Successful', () => {
 
   // voters
   let voters;
-  let votersAgainst;
+  /* let votersAgainst;
   let votersFor;
-  let votersAbstain;
+  let votersAbstain; */
 
   // smart contracts
   let rifToken;
@@ -28,19 +28,20 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   let initiateRrCalldata;
 
   // proposed redistribution parameters
-  const endsAt = Math.floor(Date.now() / 1000) + 30; // seconds
+  const endsAt = Math.floor(Date.now() / 1000) + 600; // seconds
   const percent = 50; // % of the treasury
 
   const treasurySize = hre.ethers.utils.parseEther('100'); // 100 RBTC
   const votingPower = hre.ethers.BigNumber.from(10n ** 20n); // 10 RIFs
+  const redistributionAmount = treasurySize.div(100).mul(percent);
 
   before(async () => {
     const signers = await hre.ethers.getSigners();
     [deployer] = signers;
     voters = signers.slice(1, 9); // 8 voters
-    votersAgainst = voters.slice(0, 2); // 20 votes Against
-    votersFor = voters.slice(2, 5); // 30 votes For
-    votersAbstain = voters.slice(5, 8); // 3 votes Abstain
+    // votersAgainst = voters.slice(0, 2); // 20 votes Against
+    // votersFor = voters.slice(2, 5); // 30 votes For
+    // votersAbstain = voters.slice(5, 8); // 3 votes Abstain
 
     [rifToken, rifVoteToken, governor] = await deployFtSimple(voters);
     rr = await deployContract(
@@ -150,6 +151,45 @@ describe('Governance - Revenue Redistribution - Successful', () => {
         (e) => e.event === 'ProposalCreated',
       );
       expect(args.proposalId).to.equal(proposalId);
+    });
+  });
+
+  describe('Voting', () => {
+    before(async () => {
+      // tx 5: everyone votes for
+      await Promise.all(
+        voters.map((voter) =>
+          governor
+            .connect(voter)
+            .castVote(proposalId, VoteType.For)
+            .then((tx) => tx.wait()),
+        ),
+      );
+      const deadline = (await governor.proposalDeadline(proposalId)).toNumber();
+      const currentBlock = await hre.ethers.provider.getBlockNumber();
+      await skipBlocks(deadline - currentBlock + 1);
+    });
+
+    it('the voting has succeeded', async () => {
+      expect(await governor.state(proposalId)).to.equal(
+        ProposalState.Succeeded,
+      );
+    });
+  });
+
+  describe('Revenue redistribution proposal execution', () => {
+    const rdId = 1;
+    // tx 6: start new redistribution
+    it('should initiate the redistribution', async () => {
+      await expect(governor.execute(...proposal, proposalDescriptionHash))
+        .to.emit(rr, 'RevenueRedistributionInitiated')
+        .withArgs(rdId, redistributionAmount, endsAt);
+    });
+
+    it('the RD parameters should be set correctly', async () => {
+      const rdParams = await rr.redistributions(rdId);
+      expect(rdParams.endsAt).to.equal(endsAt);
+      expect(rdParams.amount).to.equal(redistributionAmount);
     });
   });
 });

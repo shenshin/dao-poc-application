@@ -21,11 +21,15 @@ contract RevenueRedistributor {
     // token whoes owners to distribute the revenue
     RIFVoteToken public immutable voteToken;
 
-    mapping(uint256 => Redistribution) redistributions;
-    mapping(uint256 => mapping(address => bool)) acquired;
+    mapping(uint256 => Redistribution) public redistributions;
+    mapping(uint256 => mapping(address => bool)) public acquired;
 
-    event Initiated(uint256 id, uint256 amount, uint256 endsAt);
-    event Acquired(address holder, uint256 amount);
+    event RevenueRedistributionInitiated(
+        uint256 id,
+        uint256 amount,
+        uint256 endsAt
+    );
+    event RevenueAcquired(address holder, uint256 amount);
 
     Counters.Counter private _rdCounter;
 
@@ -81,7 +85,7 @@ contract RevenueRedistributor {
         // send revenue to the sender
         uint256 amount = getRevenueAmount(msg.sender);
         payable(msg.sender).transfer(amount);
-        emit Acquired(msg.sender, amount);
+        emit RevenueAcquired(msg.sender, amount);
     }
 
     function getRevenueAmount(address _holder) public view returns (uint256) {
@@ -109,7 +113,7 @@ contract RevenueRedistributor {
             voteTokenSnapshot: voteToken.makeSnapshot()
         });
         _rdCounter.increment();
-        emit Initiated(newRdId, newRdAmount, _endsAt);
+        emit RevenueRedistributionInitiated(newRdId, newRdAmount, _endsAt);
     }
 
     receive() external payable {}
