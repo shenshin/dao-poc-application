@@ -16,6 +16,10 @@ contract RIFVoteToken is ERC20, ERC20Permit, ERC20Votes, ERC20Wrapper, ERC20Snap
         ERC20Wrapper(_rifToken)
     {}
 
+    function getCurrentSnapshotId() public view returns (uint256) {
+      return _getCurrentSnapshotId();
+    }
+
     // think about who can call this function
     function makeSnapshot() public returns (uint256) {
       return _snapshot();

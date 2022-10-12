@@ -27,7 +27,8 @@ contract RevenueRedistributor {
     event RevenueRedistributionInitiated(
         uint256 id,
         uint256 amount,
-        uint256 endsAt
+        uint256 endsAt,
+        uint256 snapshot
     );
     event RevenueAcquired(address holder, uint256 amount);
 
@@ -44,8 +45,6 @@ contract RevenueRedistributor {
     constructor(IGovernor _governor, RIFVoteToken _voteToken) {
         governor = _governor;
         voteToken = _voteToken;
-        // to start rd counter from 1
-        _rdCounter.increment();
     }
 
     // this function call should be encoded within a proposal for redistribution
@@ -56,7 +55,7 @@ contract RevenueRedistributor {
     {
         // previous redistribution should be finished
         require(
-            !isActiveRedistribution(_rdCounter.current() - 1),
+            !isActiveRedistribution(_rdCounter.current()),
             'can not start a new redistribution before the previous one is still active'
         );
         // a new redistribution should be finished in future
@@ -95,7 +94,7 @@ contract RevenueRedistributor {
         uint256 snapshot = currentRd.voteTokenSnapshot;
         uint256 totalSupply = voteToken.totalSupplyAt(snapshot);
         uint256 holderBalance = voteToken.balanceOfAt(_holder, snapshot);
-        return (currentRd.amount / holderBalance) * totalSupply;
+        return (currentRd.amount * totalSupply) / holderBalance;
     }
 
     function isActiveRedistribution(uint256 _id) public view returns (bool) {
@@ -105,15 +104,22 @@ contract RevenueRedistributor {
     function _createNewRedistribution(uint256 _endsAt, uint256 _percent)
         private
     {
+        _rdCounter.increment();
         uint256 newRdId = _rdCounter.current();
         uint256 newRdAmount = (address(this).balance * _percent) / 100;
+        uint256 snapshot = voteToken.makeSnapshot();
         redistributions[newRdId] = Redistribution({
             endsAt: _endsAt,
             amount: newRdAmount,
-            voteTokenSnapshot: voteToken.makeSnapshot()
+            voteTokenSnapshot: snapshot
         });
-        _rdCounter.increment();
-        emit RevenueRedistributionInitiated(newRdId, newRdAmount, _endsAt);
+
+        emit RevenueRedistributionInitiated(
+            newRdId,
+            newRdAmount,
+            _endsAt,
+            snapshot
+        );
     }
 
     receive() external payable {}

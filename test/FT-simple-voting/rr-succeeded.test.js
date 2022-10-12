@@ -10,9 +10,6 @@ describe('Governance - Revenue Redistribution - Successful', () => {
 
   // voters
   let voters;
-  /* let votersAgainst;
-  let votersFor;
-  let votersAbstain; */
 
   // smart contracts
   let rifToken;
@@ -39,9 +36,6 @@ describe('Governance - Revenue Redistribution - Successful', () => {
     const signers = await hre.ethers.getSigners();
     [deployer] = signers;
     voters = signers.slice(1, 9); // 8 voters
-    // votersAgainst = voters.slice(0, 2); // 20 votes Against
-    // votersFor = voters.slice(2, 5); // 30 votes For
-    // votersAbstain = voters.slice(5, 8); // 3 votes Abstain
 
     [rifToken, rifVoteToken, governor] = await deployFtSimple(voters);
     rr = await deployContract(
@@ -66,6 +60,10 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       expect(await hre.ethers.provider.getBalance(rr.address)).to.equal(
         treasurySize,
       );
+    });
+
+    it('Vote token snapshot was not taken yet', async () => {
+      expect(await rifVoteToken.getCurrentSnapshotId()).to.equal(0);
     });
   });
 
@@ -177,19 +175,68 @@ describe('Governance - Revenue Redistribution - Successful', () => {
     });
   });
 
-  describe('Revenue redistribution proposal execution', () => {
+  describe('Revenue redistribution', () => {
     const rdId = 1;
-    // tx 6: start new redistribution
-    it('should initiate the redistribution', async () => {
-      await expect(governor.execute(...proposal, proposalDescriptionHash))
-        .to.emit(rr, 'RevenueRedistributionInitiated')
-        .withArgs(rdId, redistributionAmount, endsAt);
+    const snapshotId = 1;
+
+    describe('Proposal execution', () => {
+      // tx 6: start new redistribution
+      it('should initiate the redistribution', async () => {
+        await expect(governor.execute(...proposal, proposalDescriptionHash))
+          .to.emit(rr, 'RevenueRedistributionInitiated')
+          .withArgs(rdId, redistributionAmount, endsAt, snapshotId);
+      });
     });
 
-    it('the RD parameters should be set correctly', async () => {
-      const rdParams = await rr.redistributions(rdId);
-      expect(rdParams.endsAt).to.equal(endsAt);
-      expect(rdParams.amount).to.equal(redistributionAmount);
+    describe('Vote token snapshot', () => {
+      it('snapshot was taken at the moment of RR initiation', async () => {
+        expect(await rifVoteToken.getCurrentSnapshotId()).to.equal(snapshotId);
+      });
+      it('total supply at the snapshot', async () => {
+        expect(await rifVoteToken.totalSupplyAt(snapshotId)).to.equal(
+          votingPower.mul(voters.length),
+        );
+      });
+      it('balances at the snapshot', async () => {
+        await Promise.all(
+          voters.map(async (voter) => {
+            expect(
+              await rifVoteToken.balanceOfAt(voter.address, snapshotId),
+            ).to.equal(votingPower);
+          }),
+        );
+      });
+    });
+
+    describe('Parameters', () => {
+      it('the newly created RD should be active', async () => {
+        expect(await rr.isActiveRedistribution(rdId - 1)).to.be.false;
+        expect(await rr.isActiveRedistribution(rdId)).to.be.true;
+        expect(await rr.isActiveRedistribution(rdId + 1)).to.be.false;
+      });
+
+      it('the RD parameters should be set correctly', async () => {
+        const rdParams = await rr.redistributions(rdId);
+        expect(rdParams.endsAt).to.equal(endsAt);
+        expect(rdParams.amount).to.equal(redistributionAmount);
+        expect(rdParams.voteTokenSnapshot).to.equal(snapshotId);
+      });
+
+      it('revenue amount', async () => {
+        const totalSupply = votingPower.mul(voters.length);
+        const revenueAmount = redistributionAmount
+          .mul(totalSupply)
+          .div(votingPower);
+
+        await Promise.all(
+          voters.map(async (voter) => {
+            const revenue = await rr
+              .connect(voter)
+              .getRevenueAmount(voter.address);
+            expect(revenue).to.equal(revenueAmount);
+          }),
+        );
+      });
     });
   });
 });
