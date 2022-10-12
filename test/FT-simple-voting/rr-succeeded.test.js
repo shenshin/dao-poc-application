@@ -18,6 +18,17 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   let governor;
   let rr;
 
+  // revenue redistribution proposal
+  let proposal;
+  let proposalId;
+  let proposalDescription;
+  let proposalDescriptionHash;
+  let initiateRrCalldata;
+
+  // proposed redistribution parameters
+  const endsAt = Math.floor(Date.now() / 1000) + 30; // seconds
+  const percent = 50; // % of the treasury
+
   const votingPower = hre.ethers.BigNumber.from(10n ** 20n); // 10 RIFs
 
   before(async () => {
@@ -43,7 +54,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
 
   describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
     before(async () => {
-      // approval
+      // tx 1: rif -> rifVote approval
       await Promise.all(
         voters.map((voter) =>
           rifToken
@@ -52,7 +63,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
             .then((tx) => tx.wait()),
         ),
       );
-      // mint vote tokens
+      // tx 2: mint rifVote tokens
       await Promise.all(
         voters.map((voter) =>
           rifVoteToken
@@ -61,7 +72,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
             .then((tx) => tx.wait()),
         ),
       );
-      // delegate voting power
+      // tx 3: delegate voting power
       await Promise.all(
         voters.map((voter) =>
           rifVoteToken
@@ -71,6 +82,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
         ),
       );
     });
+
     it('voters should have voting power', async () => {
       await Promise.all(
         voters.map(async (voter) => {
@@ -79,6 +91,49 @@ describe('Governance - Revenue Redistribution - Successful', () => {
           ).to.equal(votingPower);
         }),
       );
+    });
+  });
+
+  describe('Create proposal for revenue redistribution', () => {
+    before(async () => {
+      // get unique ID for a new proposal
+      proposalDescription = uuidv4();
+      // calculating keccak256 hash of th proposal description
+      proposalDescriptionHash = hre.ethers.utils.solidityKeccak256(
+        ['string'],
+        [proposalDescription],
+      );
+
+      /* encoding the `initiateRedistribution` function call on the
+      `RevenueRedistributor` smart contract */
+      initiateRrCalldata = rr.interface.encodeFunctionData(
+        'initiateRedistribution',
+        [endsAt, percent],
+      );
+      // it's proposed to call `initiateRedistribution` on the RR while sending 0 RBTC
+      proposal = [[rr.address], [0], [initiateRrCalldata]];
+      // calculate proposal ID
+      proposalId = hre.ethers.BigNumber.from(
+        hre.ethers.utils.keccak256(
+          hre.ethers.utils.defaultAbiCoder.encode(
+            ['address[]', 'uint256[]', 'bytes[]', 'bytes32'],
+            [...proposal, proposalDescriptionHash],
+          ),
+        ),
+      );
+    });
+
+    it('should create the RR proposal with correct ID', async () => {
+      // tx 4: create the revenue redistribution proposal
+      await skipBlocks(1);
+      const tx = await governor
+        .connect(voters[0])
+        .propose(...proposal, proposalDescription);
+      const receipt = await tx.wait();
+      const { args } = receipt.events.find(
+        (e) => e.event === 'ProposalCreated',
+      );
+      expect(args.proposalId).to.equal(proposalId);
     });
   });
 });
