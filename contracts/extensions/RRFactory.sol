@@ -5,7 +5,7 @@ import '@openzeppelin/contracts/governance/IGovernor.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '../FT-voting-simple/RIFVoteToken.sol';
 
-contract RevenueRedistributor {
+contract RedistributionFactory {
     using Counters for Counters.Counter;
 
     // Распорядитель - гарант демократичного и честного выбора
@@ -35,10 +35,11 @@ contract RevenueRedistributor {
 
     // this function call should be encoded within a proposal for redistribution
     // a new rd is active from the moment of creation untill `_endsAt`
-    function initiateRedistribution(RIFVoteToken _voteToken, uint256 _endsAt)
-        public
-        governorOnly
-    {
+    function initiateRedistribution(
+        RIFVoteToken _voteToken,
+        uint256 _percentage,
+        uint256 _endsAt
+    ) public governorOnly {
         // previous redistribution should be finished
         require(
             !redistributions[_rdCounter.current() - 1].isActive(),
@@ -49,15 +50,31 @@ contract RevenueRedistributor {
             _endsAt > block.timestamp,
             'time is up for this redistribution'
         );
+
         // redistribution creation
-        // transfer all the money to newly created smart contract
-        Redistribution newRd = new Redistribution{value: address(this).balance}(
+        Redistribution newRd = new Redistribution(
             _voteToken,
+            _rdCounter.current(),
+            (address(this).balance / _percentage) * 100,
             _endsAt
         );
         redistributions[_rdCounter.current()] = newRd;
         _rdCounter.increment();
         emit Initiated(newRd);
+    }
+
+    // transfers revenue to token holder
+    // is a callback function called by the Redistribution s/c
+    function pay(
+        uint256 _rdId,
+        address payable _to,
+        uint256 _amount
+    ) public {
+        require(
+            Redistribution(msg.sender) == redistributions[_rdId],
+            'can be called only by a redistribution'
+        );
+        _to.transfer(_amount);
     }
 
     receive() external payable {}
@@ -67,7 +84,10 @@ contract RevenueRedistributor {
     }
 }
 
+// TODO: the money must remain on the first s/c because
+
 contract Redistribution {
+    uint256 public immutable id;
     // rd expiration time
     uint256 public immutable endsAt;
     // total amount of RBTC to redistribute to token holders during this rd
@@ -76,14 +96,22 @@ contract Redistribution {
     RIFVoteToken public immutable voteToken;
     // in case the vote token balances will change during the rd
     uint256 public immutable voteTokenSnapshot;
+    RedistributionFactory public immutable creator;
 
     mapping(address => bool) acquired;
 
-    constructor(RIFVoteToken _voteToken, uint256 _endsAt) payable {
+    constructor(
+        RIFVoteToken _voteToken,
+        uint256 _id,
+        uint256 _amount,
+        uint256 _endsAt
+    ) {
         voteToken = _voteToken;
         voteTokenSnapshot = _voteToken.makeSnapshot();
+        id = _id;
+        amount = _amount;
         endsAt = _endsAt;
-        amount = msg.value;
+        creator = RedistributionFactory(payable(msg.sender));
     }
 
     function aquireRevenue() external {
@@ -94,7 +122,7 @@ contract Redistribution {
         // make sure token owner can't acquire revenue again
         acquired[msg.sender] = true;
         // send revenue to the sender
-        payable(msg.sender).transfer(getRevenueAmount(msg.sender));
+        creator.pay(id, payable(msg.sender), getRevenueAmount(msg.sender));
     }
 
     function isActive() public view returns (bool) {

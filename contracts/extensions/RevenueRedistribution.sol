@@ -5,7 +5,7 @@ import '@openzeppelin/contracts/governance/IGovernor.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '../FT-voting-simple/RIFVoteToken.sol';
 
-contract RevenueRedistributorJoined {
+contract RevenueRedistributor {
     struct Redistribution {
         // rd expiration time
         uint256 endsAt;
@@ -16,9 +16,8 @@ contract RevenueRedistributorJoined {
     }
     using Counters for Counters.Counter;
 
-    // Распорядитель - гарант демократичного и честного выбора
     IGovernor public immutable governor;
-    // token whos owners to distribute the revenue
+    // token whoes owners to distribute the revenue
     RIFVoteToken public immutable voteToken;
 
     mapping(uint256 => Redistribution) redistributions;
@@ -43,7 +42,10 @@ contract RevenueRedistributorJoined {
 
     // this function call should be encoded within a proposal for redistribution
     // a new rd is active from the moment of creation untill `_endsAt`
-    function initiateRedistribution(uint256 _endsAt) public governorOnly {
+    function initiateRedistribution(uint256 _endsAt, uint256 _percent)
+        public
+        governorOnly
+    {
         // previous redistribution should be finished
         require(
             !isActiveRedistribution(_rdCounter.current() - 1),
@@ -54,8 +56,7 @@ contract RevenueRedistributorJoined {
             _endsAt > block.timestamp,
             'time is up for this redistribution'
         );
-        // redistribution creation
-        _createNewRedistribution(_endsAt);
+        _createNewRedistribution(_endsAt, _percent);
     }
 
     function aquireRevenue() external {
@@ -90,11 +91,13 @@ contract RevenueRedistributorJoined {
         return redistributions[_id].endsAt >= block.timestamp;
     }
 
-    function _createNewRedistribution(uint256 _endsAt) private {
+    function _createNewRedistribution(uint256 _endsAt, uint256 _percent)
+        private
+    {
         uint256 newRdId = _rdCounter.current();
         redistributions[newRdId] = Redistribution({
             endsAt: _endsAt,
-            amount: address(this).balance,
+            amount: (address(this).balance * _percent) / 100,
             voteTokenSnapshot: voteToken.makeSnapshot()
         });
         _rdCounter.increment();
@@ -106,4 +109,3 @@ contract RevenueRedistributorJoined {
         revert('unknown function call');
     }
 }
-
