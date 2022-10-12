@@ -11,7 +11,7 @@ async function transferRifsToVoters(rifToken, voters) {
       await transferRifs(wallets.slice(1));
     }
   }
-  await transferRifs(voters.slice(1));
+  await transferRifs([...voters]);
 }
 
 async function deployFtSimple(voters) {
