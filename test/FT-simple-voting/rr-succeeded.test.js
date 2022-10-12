@@ -6,6 +6,8 @@ const { deployContract } = require('../../deploy');
 const { deployFtSimple } = require('../../deploy/scripts');
 
 describe('Governance - Revenue Redistribution - Successful', () => {
+  let deployer;
+
   // voters
   let voters;
   let votersAgainst;
@@ -29,10 +31,13 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   const endsAt = Math.floor(Date.now() / 1000) + 30; // seconds
   const percent = 50; // % of the treasury
 
+  const treasurySize = hre.ethers.utils.parseEther('100'); // 100 RBTC
   const votingPower = hre.ethers.BigNumber.from(10n ** 20n); // 10 RIFs
 
   before(async () => {
-    voters = (await hre.ethers.getSigners()).slice(1, 9); // 8 voters
+    const signers = await hre.ethers.getSigners();
+    [deployer] = signers;
+    voters = signers.slice(1, 9); // 8 voters
     votersAgainst = voters.slice(0, 2); // 20 votes Against
     votersFor = voters.slice(2, 5); // 30 votes For
     votersAbstain = voters.slice(5, 8); // 3 votes Abstain
@@ -43,12 +48,23 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       governor.address,
       rifVoteToken.address,
     );
+
+    // transfer RBTC to the `RevenueRedistributor` treasury
+    await (
+      await deployer.sendTransaction({ value: treasurySize, to: rr.address })
+    ).wait();
   });
 
   describe('Deployment', () => {
     it('Governor and VoteToken addresses should be set on the RR s/c', async () => {
       expect(await rr.governor()).to.equal(governor.address);
       expect(await rr.voteToken()).to.equal(rifVoteToken.address);
+    });
+
+    it('RevenueRedistributor treasury should be full', async () => {
+      expect(await hre.ethers.provider.getBalance(rr.address)).to.equal(
+        treasurySize,
+      );
     });
   });
 
