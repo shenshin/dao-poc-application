@@ -5,6 +5,11 @@ import '@openzeppelin/contracts/governance/IGovernor.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '../FT-voting-simple/RIFVoteToken.sol';
 
+/**
+ * I am afraid it's an overkill to split revenue redistribution s/c into 2 like it's done in this file.
+ * I am using `RevenueRedistributor` single s/c instead
+ */
+
 contract RedistributionFactory {
     using Counters for Counters.Counter;
 
@@ -30,8 +35,6 @@ contract RedistributionFactory {
         // to start rd counter from 1
         _rdCounter.increment();
     }
-
-    // TODO: Make snapshot token interface with `makeSnapshot()`
 
     // this function call should be encoded within a proposal for redistribution
     // a new rd is active from the moment of creation untill `_endsAt`
@@ -83,8 +86,6 @@ contract RedistributionFactory {
         revert('unknown function call');
     }
 }
-
-// TODO: the money must remain on the first s/c because
 
 contract Redistribution {
     uint256 public immutable id;

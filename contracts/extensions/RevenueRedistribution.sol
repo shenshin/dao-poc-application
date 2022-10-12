@@ -6,6 +6,8 @@ import '@openzeppelin/contracts/utils/Counters.sol';
 import '../FT-voting-simple/RIFVoteToken.sol';
 
 contract RevenueRedistributor {
+    using Counters for Counters.Counter;
+
     struct Redistribution {
         // rd expiration time
         uint256 endsAt;
@@ -14,7 +16,6 @@ contract RevenueRedistributor {
         // in case the vote token balances will change during the rd
         uint256 voteTokenSnapshot;
     }
-    using Counters for Counters.Counter;
 
     IGovernor public immutable governor;
     // token whoes owners to distribute the revenue
@@ -22,6 +23,9 @@ contract RevenueRedistributor {
 
     mapping(uint256 => Redistribution) redistributions;
     mapping(uint256 => mapping(address => bool)) acquired;
+
+    event Initiated(uint256 id, uint256 amount, uint256 endsAt);
+    event Acquired(address holder, uint256 amount);
 
     Counters.Counter private _rdCounter;
 
@@ -59,6 +63,7 @@ contract RevenueRedistributor {
         _createNewRedistribution(_endsAt, _percent);
     }
 
+    // to be called by the token holders to transfer their revenue
     function aquireRevenue() external {
         uint256 rdId = _rdCounter.current();
         // make sure the rd is still active
@@ -74,7 +79,9 @@ contract RevenueRedistributor {
         // make sure token owner can't acquire revenue again
         acquired[rdId][msg.sender] = true;
         // send revenue to the sender
-        payable(msg.sender).transfer(getRevenueAmount(msg.sender));
+        uint256 amount = getRevenueAmount(msg.sender);
+        payable(msg.sender).transfer(amount);
+        emit Acquired(msg.sender, amount);
     }
 
     function getRevenueAmount(address _holder) public view returns (uint256) {
@@ -95,12 +102,14 @@ contract RevenueRedistributor {
         private
     {
         uint256 newRdId = _rdCounter.current();
+        uint256 newRdAmount = (address(this).balance * _percent) / 100;
         redistributions[newRdId] = Redistribution({
             endsAt: _endsAt,
-            amount: (address(this).balance * _percent) / 100,
+            amount: newRdAmount,
             voteTokenSnapshot: voteToken.makeSnapshot()
         });
         _rdCounter.increment();
+        emit Initiated(newRdId, newRdAmount, _endsAt);
     }
 
     receive() external payable {}
