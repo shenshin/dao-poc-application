@@ -223,11 +223,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       });
 
       it('revenue amount', async () => {
-        const totalSupply = votingPower.mul(voters.length);
-        const revenueAmount = redistributionAmount
-          .mul(totalSupply)
-          .div(votingPower);
-
+        const revenueAmount = redistributionAmount.div(voters.length);
         await Promise.all(
           voters.map(async (voter) => {
             const revenue = await rr

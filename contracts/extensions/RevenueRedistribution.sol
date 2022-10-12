@@ -94,7 +94,8 @@ contract RevenueRedistributor {
         uint256 snapshot = currentRd.voteTokenSnapshot;
         uint256 totalSupply = voteToken.totalSupplyAt(snapshot);
         uint256 holderBalance = voteToken.balanceOfAt(_holder, snapshot);
-        return (currentRd.amount * totalSupply) / holderBalance;
+
+        return (currentRd.amount * holderBalance) / totalSupply;
     }
 
     function isActiveRedistribution(uint256 _id) public view returns (bool) {
