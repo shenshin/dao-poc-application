@@ -192,12 +192,12 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       it('snapshot was taken at the moment of RR initiation', async () => {
         expect(await rifVoteToken.getCurrentSnapshotId()).to.equal(snapshotId);
       });
-      it('total supply at the snapshot', async () => {
+      it('total supply at the snapshot is recorded', async () => {
         expect(await rifVoteToken.totalSupplyAt(snapshotId)).to.equal(
           await rifVoteToken.totalSupply(),
         );
       });
-      it('balances at the snapshot', async () => {
+      it('balances at the snapshot are recorded', async () => {
         await Promise.all(
           voters.map(async (voter, i) => {
             expect(
@@ -215,14 +215,14 @@ describe('Governance - Revenue Redistribution - Successful', () => {
         expect(await rr.isActiveRedistribution(rdId + 1)).to.be.false;
       });
 
-      it('the RD parameters should be set correctly', async () => {
+      it('the active redistribution parameters should be set correctly', async () => {
         const rdParams = await rr.redistributions(rdId);
         expect(rdParams.endsAt).to.equal(endsAt);
         expect(rdParams.amount).to.equal(redistributionAmount);
         expect(rdParams.voteTokenSnapshot).to.equal(snapshotId);
       });
 
-      it('revenue amount', async () => {
+      it('revenue amount should be calculated correctly', async () => {
         const voteTokenSupply = await rifVoteToken.totalSupplyAt(snapshotId);
         await Promise.all(
           voters.map(async (voter) => {
@@ -237,6 +237,34 @@ describe('Governance - Revenue Redistribution - Successful', () => {
               .connect(voter)
               .getRevenueAmount(voter.address);
             expect(revenue).to.equal(revenueAmount);
+          }),
+        );
+      });
+    });
+
+    describe('Acquire the revenue', () => {
+      // tx 7: revenue withdrawal
+      it('holders should acquire their revenue', async () => {
+        await Promise.all(
+          voters.map(async (voter) => {
+            const revenue = await rr
+              .connect(voter)
+              .getRevenueAmount(voter.address);
+            const tx = rr.connect(voter).aquireRevenue();
+            await expect(tx)
+              .to.emit(rr, 'RevenueAcquired')
+              .withArgs(voter.address, revenue);
+          }),
+        );
+      });
+
+      it('holders can not withdraw the revenue again', async () => {
+        await Promise.all(
+          voters.map(async (voter) => {
+            const tx = rr.connect(voter).aquireRevenue();
+            await expect(tx).to.be.revertedWith(
+              'the revenue was already acquired',
+            );
           }),
         );
       });
