@@ -2,7 +2,6 @@ const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
 const { skipBlocks, ProposalState, VoteType } = require('../../util');
-const { deployContract } = require('../../deploy');
 const { deployFtSimple } = require('../../deploy/scripts');
 
 describe('Governance - Revenue Redistribution - Successful', () => {
@@ -37,12 +36,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
     [deployer] = signers;
     voters = signers.slice(1, 9); // 8 voters
 
-    [rifToken, rifVoteToken, governor] = await deployFtSimple(voters);
-    rr = await deployContract(
-      'RevenueRedistributor',
-      governor.address,
-      rifVoteToken.address,
-    );
+    [rifToken, rifVoteToken, governor, , rr] = await deployFtSimple(voters);
 
     // transfer RBTC to the `RevenueRedistributor` treasury
     await (

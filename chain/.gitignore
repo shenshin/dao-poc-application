@@ -1,0 +1,11 @@
+#Hardhat files
+
+coverage
+coverage.json
+typechain
+typechain-types
+
+cache
+artifacts
+
+.secret.json
