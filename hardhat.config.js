@@ -5,6 +5,11 @@ require('./tasks/clean.js');
 // require('hardhat-contract-sizer');
 const { mnemonic } = require('./.secret.json');
 
+const accounts = {
+  mnemonic,
+  path: "m/44'/60'/0'/0",
+};
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
@@ -19,7 +24,9 @@ module.exports = {
   },
   defaultNetwork: 'hardhat',
   networks: {
-    hardhat: {},
+    hardhat: {
+      accounts,
+    },
     rskregtest: {
       chainId: 33,
       url: 'http://localhost:4444',
@@ -28,10 +35,7 @@ module.exports = {
     rsktestnet: {
       chainId: 31,
       url: 'https://public-node.testnet.rsk.co/',
-      accounts: {
-        mnemonic,
-        path: "m/44'/60'/0'/0",
-      },
+      accounts,
     },
   },
   mocha: {
