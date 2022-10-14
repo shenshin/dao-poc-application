@@ -40,7 +40,7 @@ contract RevenueRedistributor {
     }
 
     // this function call should be encoded within a proposal for redistribution
-    // a new rd is active from the moment of creation untill `_endsAt`
+    // a new rd is active within a `_duration` period from the moment of creation
     function initiateRedistribution(uint256 _duration, uint256 _percent)
         public
     {
