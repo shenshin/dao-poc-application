@@ -83,7 +83,8 @@ contract RevenueRedistributor {
         acquired[rdId][msg.sender] = true;
         // send revenue to the sender
         uint256 amount = getRevenueAmount(msg.sender);
-        payable(msg.sender).transfer(amount);
+        (bool success,) = msg.sender.call{value:amount}('');
+        require(success, 'could not transfer revenue');
         emit RevenueAcquired(msg.sender, amount);
     }
 

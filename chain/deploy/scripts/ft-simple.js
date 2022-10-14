@@ -22,7 +22,12 @@ async function deployFtSimple(voters) {
   const rifVoteToken = await getContract('RIFVoteToken', rifToken.address);
   const governor = await getContract('GovernorFT', rifVoteToken.address);
   const proposalTarget = await getContract('ProposalTarget', governor.address);
-  return [rifToken, rifVoteToken, governor, proposalTarget];
+  const rr = await getContract(
+    'RevenueRedistributor',
+    governor.address,
+    rifVoteToken.address,
+  );
+  return [rifToken, rifVoteToken, governor, proposalTarget, rr];
 }
 
 module.exports = deployFtSimple;

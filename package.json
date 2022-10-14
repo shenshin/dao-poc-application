@@ -1,20 +1,21 @@
 {
-  "name": "dao-poc-app",
-  "version": "0.0.1",
-  "description": "Distributed Autonomous Organisation (DAO) Proof of Concept (POC) Application",
+  "name": "rootstock-dao-poc",
+  "version": "1.0.0",
+  "description": "Rootstock Distributed Autonomous Organisation (DAO) Proof of Concept (POC) Application",
   "main": "index.js",
   "scripts": {
-    "test": "npx hardhat test --network hardhat"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shenshin/dao-poc-application.git"
   },
   "keywords": [
+    "rootstock",
     "rsk",
-    "dao",
-    "web3",
-    "solidity"
+    "iovlabs",
+    "rif",
+    "dao"
   ],
   "author": "Aleksandr Shenshin",
   "license": "GPL-3.0",
@@ -23,18 +24,10 @@
   },
   "homepage": "https://github.com/shenshin/dao-poc-application#readme",
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
-    "@openzeppelin/contracts": "^4.7.3",
-    "eslint": "^8.22.0",
+    "eslint": "^8.25.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "hardhat": "^2.10.2",
-    "hardhat-contract-sizer": "^2.6.1",
-    "prettier": "^2.7.1"
-  },
-  "dependencies": {
-    "uuid": "^9.0.0"
+    "eslint-plugin-prettier": "^4.2.1"
   }
 }

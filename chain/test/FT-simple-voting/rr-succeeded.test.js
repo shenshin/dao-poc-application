@@ -2,7 +2,6 @@ const { expect } = require('chai');
 const hre = require('hardhat');
 const { v4: uuidv4 } = require('uuid');
 const { skipBlocks, ProposalState, VoteType } = require('../../util');
-const { deployContract } = require('../../deploy');
 const { deployFtSimple } = require('../../deploy/scripts');
 
 describe('Governance - Revenue Redistribution - Successful', () => {
@@ -25,82 +24,99 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   let initiateRrCalldata;
 
   // proposed redistribution parameters
-  const endsAt = Math.floor(Date.now() / 1000) + 600; // seconds
+  // const endsAt = Math.floor(Date.now() / 1000) + 600; // seconds
+  let endsAt;
   const percent = 50; // % of the treasury
 
-  const treasurySize = hre.ethers.utils.parseEther('100'); // 100 RBTC
+  const treasurySize = hre.ethers.utils.parseEther('0.05'); // RBTC
   const votingPower = hre.ethers.BigNumber.from(10n ** 19n); // RIFs
   const redistributionAmount = treasurySize.div(100).mul(percent);
 
   before(async () => {
     const signers = await hre.ethers.getSigners();
     [deployer] = signers;
-    voters = signers.slice(1, 9); // 8 voters
+    voters = signers.slice(1, 9);
 
-    [rifToken, rifVoteToken, governor] = await deployFtSimple(voters);
-    rr = await deployContract(
-      'RevenueRedistributor',
-      governor.address,
-      rifVoteToken.address,
-    );
+    [rifToken, rifVoteToken, governor, , rr] = await deployFtSimple(voters);
 
     // transfer RBTC to the `RevenueRedistributor` treasury
-    await (
-      await deployer.sendTransaction({ value: treasurySize, to: rr.address })
-    ).wait();
+    const rrBalance = await hre.ethers.provider.getBalance(rr.address);
+    if (rrBalance.lt(treasurySize)) {
+      await (
+        await deployer.sendTransaction({ value: treasurySize, to: rr.address })
+      ).wait();
+    }
   });
 
   describe('Deployment', () => {
     it('Governor and VoteToken addresses should be set on the RR s/c', async () => {
-      expect(await rr.governor()).to.equal(governor.address);
-      expect(await rr.voteToken()).to.equal(rifVoteToken.address);
-    });
-
-    it('RevenueRedistributor treasury should be full', async () => {
-      expect(await hre.ethers.provider.getBalance(rr.address)).to.equal(
-        treasurySize,
+      expect((await rr.governor()).toLowerCase()).to.equal(
+        governor.address.toLowerCase(),
+      );
+      expect((await rr.voteToken()).toLowerCase()).to.equal(
+        rifVoteToken.address.toLowerCase(),
       );
     });
 
-    it('Vote token snapshot was not taken yet', async () => {
-      expect(await rifVoteToken.getCurrentSnapshotId()).to.equal(0);
+    it('RevenueRedistributor treasury should be full', async () => {
+      expect(
+        (await hre.ethers.provider.getBalance(rr.address)).gte(treasurySize),
+      ).to.be.true;
+    });
+
+    it('voters should have enough tokens', async () => {
+      await Promise.all(
+        voters.map(async (voter, i) => {
+          const rifBalance = await rifToken.balanceOf(voter.address);
+          expect(rifBalance.gte(votingPower.mul(i + 1))).to.be.true;
+        }),
+      );
     });
   });
 
   describe('Wrapping RIF with RIFVote tokens. Votes delegation', () => {
-    before(async () => {
-      // tx 1: rif -> rifVote approval
+    // tx 1: rif -> rifVote approval
+    it('voters should approve the RIF allowance for RIFVote', async () => {
       await Promise.all(
         voters.map((voter, i) =>
-          rifToken
-            .connect(voter)
-            .approve(rifVoteToken.address, votingPower.mul(i + 1))
-            .then((tx) => tx.wait()),
-        ),
-      );
-      // tx 2: mint rifVote tokens
-      await Promise.all(
-        voters.map((voter, i) =>
-          rifVoteToken
-            .connect(voter)
-            .depositFor(voter.address, votingPower.mul(i + 1))
-            .then((tx) => tx.wait()),
-        ),
-      );
-      // tx 3: delegate voting power
-      await Promise.all(
-        voters.map((voter) =>
-          rifVoteToken
-            .connect(voter)
-            .delegate(voter.address)
-            .then((tx) => tx.wait()),
+          expect(
+            rifToken
+              .connect(voter)
+              .approve(rifVoteToken.address, votingPower.mul(i + 1)),
+          )
+            .to.emit(rifToken, 'Approval')
+            .withArgs(
+              voter.address,
+              hre.ethers.utils.getAddress(rifVoteToken.address),
+              votingPower.mul(i + 1),
+            ),
         ),
       );
     });
-
-    it('voters should have voting power', async () => {
+    // tx 2: mint rifVote tokens
+    it('voters should deposit underlying tokens and mint the corresponding number of wrapped tokens', async () => {
+      await Promise.all(
+        voters.map((voter, i) =>
+          expect(
+            rifVoteToken
+              .connect(voter)
+              .depositFor(voter.address, votingPower.mul(i + 1)),
+          )
+            .to.emit(rifVoteToken, 'Transfer')
+            .withArgs(
+              hre.ethers.constants.AddressZero,
+              voter.address,
+              votingPower.mul(i + 1),
+            ),
+        ),
+      );
+    });
+    // tx 3: delegate voting power
+    it('RIFVote token holders should self-delegate the voting power', async () => {
       await Promise.all(
         voters.map(async (voter, i) => {
+          const tx = await rifVoteToken.connect(voter).delegate(voter.address);
+          await tx.wait();
           expect(
             await rifVoteToken.connect(voter).getVotes(voter.address),
           ).to.equal(votingPower.mul(i + 1));
@@ -119,6 +135,9 @@ describe('Governance - Revenue Redistribution - Successful', () => {
         [proposalDescription],
       );
 
+      // the redistribution lasts an hour
+      const { timestamp } = await hre.ethers.provider.getBlock();
+      endsAt = timestamp + 3600;
       /* encoding the `initiateRedistribution` function call on the
       `RevenueRedistributor` smart contract */
       initiateRrCalldata = rr.interface.encodeFunctionData(
@@ -155,6 +174,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   describe('Voting', () => {
     before(async () => {
       // tx 5: everyone votes for
+      await skipBlocks(1);
       await Promise.all(
         voters.map((voter) =>
           governor
@@ -178,6 +198,17 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   describe('Revenue redistribution', () => {
     const rdId = 1;
     const snapshotId = 1;
+    let revenues;
+
+    before(async () => {
+      const voteTokenSupply = voters.reduce(
+        (p, c, i) => p.add(votingPower.mul(i + 1)),
+        hre.ethers.BigNumber.from('0'),
+      );
+      revenues = voters.map((voter, i) =>
+        redistributionAmount.mul(votingPower.mul(i + 1)).div(voteTokenSupply),
+      );
+    });
 
     describe('Proposal execution', () => {
       // tx 6: start new redistribution
@@ -223,20 +254,11 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       });
 
       it('revenue amount should be calculated correctly', async () => {
-        const voteTokenSupply = await rifVoteToken.totalSupplyAt(snapshotId);
         await Promise.all(
-          voters.map(async (voter) => {
-            const tokenBalance = await rifVoteToken.balanceOfAt(
-              voter.address,
-              snapshotId,
-            );
-            const revenueAmount = redistributionAmount
-              .mul(tokenBalance)
-              .div(voteTokenSupply);
-            const revenue = await rr
-              .connect(voter)
-              .getRevenueAmount(voter.address);
-            expect(revenue).to.equal(revenueAmount);
+          voters.map(async (voter, i) => {
+            expect(
+              await rr.connect(voter).getRevenueAmount(voter.address),
+            ).to.equal(revenues[i]);
           }),
         );
       });
@@ -246,28 +268,40 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       // tx 7: revenue withdrawal
       it('holders should acquire their revenue', async () => {
         await Promise.all(
-          voters.map(async (voter) => {
-            const revenue = await rr
-              .connect(voter)
-              .getRevenueAmount(voter.address);
-            const tx = rr.connect(voter).aquireRevenue();
-            await expect(tx)
+          voters.map((voter, i) =>
+            expect(rr.connect(voter).aquireRevenue())
               .to.emit(rr, 'RevenueAcquired')
-              .withArgs(voter.address, revenue);
-          }),
+              .withArgs(voter.address, revenues[i]),
+          ),
         );
       });
 
       it('holders can not withdraw the revenue again', async () => {
         await Promise.all(
-          voters.map(async (voter) => {
-            const tx = rr.connect(voter).aquireRevenue();
-            await expect(tx).to.be.revertedWith(
+          voters.map((voter) =>
+            expect(rr.connect(voter).aquireRevenue()).to.be.revertedWith(
               'the revenue was already acquired',
-            );
-          }),
+            ),
+          ),
         );
       });
+    });
+  });
+  describe('Unwrapping RIF tokens', () => {
+    // tx 8: burn vote tokens - redeem rif tokens
+    it('should unwrap vote tokens to obtain RIF tokens', async () => {
+      await Promise.all(
+        voters.map(async (voter, i) => {
+          const rifBalance = await rifToken.balanceOf(voter.address);
+          const withdrawTx = await rifVoteToken
+            .connect(voter)
+            .withdrawTo(voter.address, votingPower.mul(i + 1));
+          await withdrawTx.wait();
+          expect(await rifToken.balanceOf(voter.address)).to.equal(
+            rifBalance.add(votingPower.mul(i + 1)),
+          );
+        }),
+      );
     });
   });
 });

@@ -56,11 +56,15 @@ function skipBlocks(blocksToSkip) {
         await mine(blocksToSkip);
         resolve();
       } else {
-        const deadline =
-          (await hre.ethers.provider.getBlockNumber()) + blocksToSkip;
-        hre.ethers.provider.on('block', (blockNumber) => {
-          if (blockNumber >= deadline) resolve();
-        });
+        const currentBlock = Number(await hre.ethers.provider.getBlockNumber());
+        const deadline = currentBlock + Number(blocksToSkip);
+        const listener = (blockNumber) => {
+          if (Number(blockNumber) === deadline) {
+            hre.ethers.provider.off('block', listener);
+            resolve();
+          }
+        };
+        hre.ethers.provider.on('block', listener);
       }
     })();
   });
