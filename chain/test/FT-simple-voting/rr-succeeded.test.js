@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
+const { anyValue } = require('@nomicfoundation/hardhat-chai-matchers/withArgs');
 const { v4: uuidv4 } = require('uuid');
 const { skipBlocks, ProposalState, VoteType } = require('../../util');
 const { deployFtSimple } = require('../../deploy/scripts');
@@ -24,8 +25,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   let initiateRrCalldata;
 
   // proposed redistribution parameters
-  // const endsAt = Math.floor(Date.now() / 1000) + 600; // seconds
-  let endsAt;
+  const duration = 3600; // seconds
   const percent = 50; // % of the treasury
 
   const treasurySize = hre.ethers.utils.parseEther('0.05'); // RBTC
@@ -135,14 +135,11 @@ describe('Governance - Revenue Redistribution - Successful', () => {
         [proposalDescription],
       );
 
-      // the redistribution lasts an hour
-      const { timestamp } = await hre.ethers.provider.getBlock();
-      endsAt = timestamp + 3600;
       /* encoding the `initiateRedistribution` function call on the
       `RevenueRedistributor` smart contract */
       initiateRrCalldata = rr.interface.encodeFunctionData(
         'initiateRedistribution',
-        [endsAt, percent],
+        [duration, percent],
       );
       // it's proposed to call `initiateRedistribution` on the RR while sending 0 RBTC
       proposal = [[rr.address], [0], [initiateRrCalldata]];
@@ -215,7 +212,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
       it('should initiate the redistribution', async () => {
         await expect(governor.execute(...proposal, proposalDescriptionHash))
           .to.emit(rr, 'RevenueRedistributionInitiated')
-          .withArgs(rdId, redistributionAmount, endsAt, snapshotId);
+          .withArgs(rdId, redistributionAmount, anyValue, snapshotId);
       });
     });
 
@@ -248,7 +245,6 @@ describe('Governance - Revenue Redistribution - Successful', () => {
 
       it('the active redistribution parameters should be set correctly', async () => {
         const rdParams = await rr.redistributions(rdId);
-        expect(rdParams.endsAt).to.equal(endsAt);
         expect(rdParams.amount).to.equal(redistributionAmount);
         expect(rdParams.voteTokenSnapshot).to.equal(snapshotId);
       });

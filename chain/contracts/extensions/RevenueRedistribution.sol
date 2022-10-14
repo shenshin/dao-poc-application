@@ -34,36 +34,27 @@ contract RevenueRedistributor {
 
     Counters.Counter private _rdCounter;
 
-    modifier governorOnly() {
-        require(
-            msg.sender == address(governor),
-            'can be called only by the Governor'
-        );
-        _;
-    }
-
     constructor(IGovernor _governor, RIFVoteToken _voteToken) {
         governor = _governor;
         voteToken = _voteToken;
     }
 
     // this function call should be encoded within a proposal for redistribution
-    // a new rd is active from the moment of creation untill `_endsAt`
-    function initiateRedistribution(uint256 _endsAt, uint256 _percent)
+    // a new rd is active within a `_duration` period from the moment of creation
+    function initiateRedistribution(uint256 _duration, uint256 _percent)
         public
-        governorOnly
     {
+        // only the Governor!
+        require(
+            msg.sender == address(governor),
+            'can be called only by the Governor'
+        );
         // previous redistribution should be finished
         require(
             !isActiveRedistribution(_rdCounter.current()),
             'can not start a new redistribution before the previous one is still active'
         );
-        // a new redistribution should be finished in future
-        require(
-            _endsAt > block.timestamp,
-            'time is up for this redistribution'
-        );
-        _createNewRedistribution(_endsAt, _percent);
+        _createNewRedistribution(_duration, _percent);
     }
 
     // to be called by the token holders to transfer their revenue
@@ -83,7 +74,7 @@ contract RevenueRedistributor {
         acquired[rdId][msg.sender] = true;
         // send revenue to the sender
         uint256 amount = getRevenueAmount(msg.sender);
-        (bool success,) = msg.sender.call{value:amount}('');
+        (bool success, ) = msg.sender.call{value: amount}('');
         require(success, 'could not transfer revenue');
         emit RevenueAcquired(msg.sender, amount);
     }
@@ -103,15 +94,16 @@ contract RevenueRedistributor {
         return redistributions[_id].endsAt >= block.timestamp;
     }
 
-    function _createNewRedistribution(uint256 _endsAt, uint256 _percent)
+    function _createNewRedistribution(uint256 _duration, uint256 _percent)
         private
     {
         _rdCounter.increment();
         uint256 newRdId = _rdCounter.current();
         uint256 newRdAmount = (address(this).balance * _percent) / 100;
         uint256 snapshot = voteToken.makeSnapshot();
+        uint256 endsAt = block.timestamp + _duration;
         redistributions[newRdId] = Redistribution({
-            endsAt: _endsAt,
+            endsAt: endsAt,
             amount: newRdAmount,
             voteTokenSnapshot: snapshot
         });
@@ -119,7 +111,7 @@ contract RevenueRedistributor {
         emit RevenueRedistributionInitiated(
             newRdId,
             newRdAmount,
-            _endsAt,
+            endsAt,
             snapshot
         );
     }
