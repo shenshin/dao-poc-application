@@ -48,7 +48,10 @@ async function writeDeployedAddress(contractName, address) {
 async function copyToFrontend(name, address) {
   if (hre.network.name === 'hardhat') return;
   const { abi } = await hre.artifacts.readArtifact(name);
-  const frontAbiDir = path.join(files.frontAbiDir, hre.network.name);
+  const frontAbiDir = path.join(
+    files.frontAbiDir,
+    String(hre.network.config.chainId),
+  );
   await fs.mkdir(frontAbiDir, { recursive: true });
   const fileName = path.join(frontAbiDir, `${name}.json`);
   const fileContent = {
