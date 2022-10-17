@@ -1,21 +1,16 @@
 import { useContext } from 'react';
 import './App.css';
-import useRIFToken from './hooks/useRIFToken';
-import useVoteToken from './hooks/useVoteToken';
 import ConnectWallet from './components/ConnectWallet';
 import WaitingForTxMessage from './components/WaitingForTxMessage';
 import EthersContext from './contexts/ethersContext';
+import RifContext from './contexts/rifContext';
+import VoteTokenContext from './contexts/voteTokenContext';
 
 function App() {
-  const { provider, account, txBeingSent, setTxBeingSent, setTxError } =
-    useContext(EthersContext);
-  const { rifBalance, getRifBalance, approve } = useRIFToken(
-    provider,
-    setTxBeingSent,
-    setTxError,
-  );
+  const { account, txBeingSent } = useContext(EthersContext);
+  const { rifBalance, getRifBalance, approve } = useContext(RifContext);
   const { voteTokenContract, voteTokenBalance, getVoteTokenBalance } =
-    useVoteToken(provider);
+    useContext(VoteTokenContext);
   const getBalances = () => {
     getRifBalance();
     getVoteTokenBalance();

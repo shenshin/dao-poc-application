@@ -1,11 +1,11 @@
 import useContract from './useContract';
-import voteTokenArtifact from '../contracts/31/RIFVoteToken.json';
+import artifact from '../contracts/31/RIFVoteToken.json';
 
-const useVoteToken = (provider) => {
-  const { contract, balance, getBalance } = useContract(
-    voteTokenArtifact,
+const useVoteToken = ({ provider }) => {
+  const { contract, balance, getBalance } = useContract({
+    artifact,
     provider,
-  );
+  });
   return {
     voteTokenContract: contract,
     voteTokenBalance: balance,

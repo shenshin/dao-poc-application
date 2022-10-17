@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 
-const useContract = (artifact, provider) => {
+const useContract = ({ artifact, provider }) => {
   const [balance, setBalance] = useState(0);
   const [contract, setContract] = useState(null);
   useEffect(() => {
