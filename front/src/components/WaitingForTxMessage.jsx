@@ -1,8 +1,14 @@
-function WaitingForTxMessage({ txHash }) {
+import { useContext } from 'react';
+import EthersContext from '../contexts/ethersContext';
+
+function WaitingForTxMessage() {
+  const { txBeingSent } = useContext(EthersContext);
   return (
-    <div>
-      Waiting for transaction <strong>{txHash}</strong>
-    </div>
+    txBeingSent && (
+      <div>
+        Waiting for transaction <strong>{txBeingSent}</strong>
+      </div>
+    )
   );
 }
 

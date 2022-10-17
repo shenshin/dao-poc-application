@@ -7,7 +7,7 @@ import RifContext from './contexts/rifContext';
 import VoteTokenContext from './contexts/voteTokenContext';
 
 function App() {
-  const { account, txBeingSent } = useContext(EthersContext);
+  const { account } = useContext(EthersContext);
   const { rifBalance, approve } = useContext(RifContext);
   const { voteTokenContract, voteTokenBalance } = useContext(VoteTokenContext);
 
@@ -16,7 +16,7 @@ function App() {
   }
   return (
     <div className="App">
-      {txBeingSent && <WaitingForTxMessage txHash={txBeingSent} />}
+      <WaitingForTxMessage />
       <p>{`Selected account: ${account}`}</p>
       <p>{`RIF balance: ${rifBalance}`}</p>
       <p>{`Vote token balance: ${voteTokenBalance}`}</p>
