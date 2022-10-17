@@ -1,7 +1,6 @@
 import useERC20 from './useERC20';
 import artifact from '../contracts/31/RIFToken.json';
-
-const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
+import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
 
 const useRIFToken = ({ provider, setTxBeingSent, setTxError }) => {
   const { contract, balance } = useERC20({

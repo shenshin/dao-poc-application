@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import useContract from './useContract';
-
-const BALANCE_REFRESH = 5000; // 5 seconds
+import { SC_UPDATE_FREQUENCY } from '../utils/constants';
 
 const useERC20 = ({ artifact, provider }) => {
   const [balance, setBalance] = useState(0);
   const { contract } = useContract({ artifact, provider });
 
-  // retrieve token balances
+  // retrieve token balances every few seconds
   useEffect(() => {
     let interval;
     if (contract) {
@@ -16,7 +15,7 @@ const useERC20 = ({ artifact, provider }) => {
         setBalance(await contract.balanceOf(address));
       };
       getBalance();
-      interval = setInterval(getBalance, BALANCE_REFRESH);
+      interval = setInterval(getBalance, SC_UPDATE_FREQUENCY);
     }
     return () => clearInterval(interval);
   }, [contract, provider]);
