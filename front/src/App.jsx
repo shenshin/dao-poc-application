@@ -8,13 +8,9 @@ import VoteTokenContext from './contexts/voteTokenContext';
 
 function App() {
   const { account, txBeingSent } = useContext(EthersContext);
-  const { rifBalance, getRifBalance, approve } = useContext(RifContext);
-  const { voteTokenContract, voteTokenBalance, getVoteTokenBalance } =
-    useContext(VoteTokenContext);
-  const getBalances = () => {
-    getRifBalance();
-    getVoteTokenBalance();
-  };
+  const { rifBalance, approve } = useContext(RifContext);
+  const { voteTokenContract, voteTokenBalance } = useContext(VoteTokenContext);
+
   if (!account) {
     return <ConnectWallet />;
   }
@@ -24,9 +20,6 @@ function App() {
       <p>{`Selected account: ${account}`}</p>
       <p>{`RIF balance: ${rifBalance}`}</p>
       <p>{`Vote token balance: ${voteTokenBalance}`}</p>
-      <button type="button" onClick={getBalances}>
-        Get Balances
-      </button>
       <button
         type="button"
         onClick={() => approve(voteTokenContract.address, 10n ** 18n)}
