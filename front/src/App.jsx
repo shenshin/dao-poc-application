@@ -1,21 +1,14 @@
+import { useContext } from 'react';
 import './App.css';
-import useEthers from './hooks/useEthers';
 import useRIFToken from './hooks/useRIFToken';
 import useVoteToken from './hooks/useVoteToken';
 import ConnectWallet from './components/ConnectWallet';
 import WaitingForTxMessage from './components/WaitingForTxMessage';
+import EthersContext from './contexts/ethersContext';
 
 function App() {
-  const {
-    connect,
-    provider,
-    account,
-    networkError,
-    dismissNetworkError,
-    txBeingSent,
-    setTxBeingSent,
-    setTxError,
-  } = useEthers();
+  const { provider, account, txBeingSent, setTxBeingSent, setTxError } =
+    useContext(EthersContext);
   const { rifBalance, getRifBalance, approve } = useRIFToken(
     provider,
     setTxBeingSent,
@@ -28,13 +21,7 @@ function App() {
     getVoteTokenBalance();
   };
   if (!account) {
-    return (
-      <ConnectWallet
-        connectWallet={connect}
-        networkError={networkError}
-        dismiss={dismissNetworkError}
-      />
-    );
+    return <ConnectWallet />;
   }
   return (
     <div className="App">

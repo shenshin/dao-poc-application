@@ -1,10 +1,12 @@
-import React from 'react';
+import { useContext } from 'react';
+import EthersContext from '../contexts/ethersContext';
 
-function NetworkErrorMessage({ message, dismiss }) {
+function NetworkErrorMessage() {
+  const { networkError, dismissNetworkError } = useContext(EthersContext);
   return (
     <div>
-      {message}
-      <button type="button" onClick={dismiss}>
+      {networkError}
+      <button type="button" onClick={dismissNetworkError}>
         <span aria-hidden="true">&times;</span>
       </button>
     </div>

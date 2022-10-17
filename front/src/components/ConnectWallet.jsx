@@ -1,15 +1,14 @@
+import { useContext } from 'react';
+import EthersContext from '../contexts/ethersContext';
 import NetworkErrorMessage from './NetworkErrorMessage';
 
-function ConnectWallet({ connectWallet, networkError, dismiss }) {
+function ConnectWallet() {
+  const { connect, networkError } = useContext(EthersContext);
   return (
     <>
-      <div>
-        {networkError && (
-          <NetworkErrorMessage message={networkError} dismiss={dismiss} />
-        )}
-      </div>
+      <div>{networkError && <NetworkErrorMessage />}</div>
       <p>Connect your wallet</p>
-      <button type="button" onClick={connectWallet}>
+      <button type="button" onClick={connect}>
         Connect wallet!
       </button>
     </>
