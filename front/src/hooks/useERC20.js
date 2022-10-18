@@ -2,23 +2,29 @@ import { useState, useEffect } from 'react';
 import useContract from './useContract';
 import { SC_UPDATE_FREQUENCY } from '../utils/constants';
 
-const useERC20 = ({ artifact, provider }) => {
+const useERC20 = (props) => {
+  const { setNetworkError, account, provider } = props;
   const [balance, setBalance] = useState(0);
-  const { contract } = useContract({ artifact, provider });
+  const { contract } = useContract(props);
 
   // retrieve token balances every few seconds
   useEffect(() => {
     let interval;
-    if (contract) {
+    if (provider && contract) {
       const getBalance = async () => {
-        const [address] = await provider.listAccounts();
-        setBalance(await contract.balanceOf(address));
+        try {
+          setNetworkError(null);
+          setBalance(await contract.balanceOf(account));
+        } catch (error) {
+          setNetworkError(error.message);
+        }
       };
       getBalance();
       interval = setInterval(getBalance, SC_UPDATE_FREQUENCY);
     }
     return () => clearInterval(interval);
-  }, [contract, provider]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, contract]);
 
   return {
     contract,
