@@ -3,7 +3,7 @@ import useContract from './useContract';
 import { SC_UPDATE_FREQUENCY } from '../utils/constants';
 
 const useERC20 = (props) => {
-  const { setNetworkError, account, provider } = props;
+  const { setErrorMessage, address, provider } = props;
   const [balance, setBalance] = useState(0);
   const { contract } = useContract(props);
 
@@ -13,10 +13,11 @@ const useERC20 = (props) => {
     if (provider && contract) {
       const getBalance = async () => {
         try {
-          setNetworkError(null);
-          setBalance(await contract.balanceOf(account));
+          setErrorMessage(null);
+          const bal = await contract.balanceOf(address);
+          setBalance(bal.div(10n ** 18n));
         } catch (error) {
-          setNetworkError(error.message);
+          setErrorMessage(error.message);
         }
       };
       getBalance();

@@ -3,19 +3,20 @@ import artifact from '../contracts/31/RIFToken.json';
 import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
 
 const useRIFToken = (props) => {
-  const { setTxBeingSent, setTxError } = props;
+  const { setLoading, setErrorMessage } = props;
   const { contract, balance } = useERC20({ artifact, ...props });
   const approve = async (address, amount) => {
     try {
+      setErrorMessage(null);
       const tx = await contract.approve(address, amount);
-      setTxBeingSent(tx.hash);
+      setLoading(tx.hash);
       await tx.wait();
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
-        setTxError(error.message);
+        setErrorMessage(error.message);
       }
     } finally {
-      setTxBeingSent(null);
+      setLoading(null);
     }
   };
   return {

@@ -6,24 +6,22 @@ const RSK_TESTNET_NETWORK_ID = 31;
 
 const useEthers = () => {
   const [provider, setProvider] = useState(null);
-  const [account, setAccount] = useState(null);
-  const [txBeingSent, setTxBeingSent] = useState(null);
-  const [networkError, setNetworkError] = useState(null);
-  const [txError, setTxError] = useState(null);
+  const [address, setAddress] = useState(null);
+  const [loading, setLoading] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const resetState = () => {
     setProvider(null);
-    setAccount(null);
-    setTxBeingSent(null);
-    setNetworkError(null);
-    setTxError(null);
+    setAddress(null);
+    setLoading(null);
+    setErrorMessage(null);
   };
 
   const checkNetwork = async (ethersProvider) => {
     const { chainId } = await ethersProvider.getNetwork();
     if (chainId !== RSK_TESTNET_NETWORK_ID) {
       resetState();
-      setNetworkError('Please connect to RSK Testnet');
+      setErrorMessage('Please connect to RSK Testnet');
       return false;
     }
     return true;
@@ -34,7 +32,7 @@ const useEthers = () => {
     if (!(await checkNetwork(ethersProvider))) return;
     const [selectedAddress] = await ethersProvider.listAccounts();
     setProvider(ethersProvider);
-    setAccount(selectedAddress);
+    setAddress(selectedAddress);
   };
 
   const addEventListeners = () => {
@@ -45,7 +43,7 @@ const useEthers = () => {
   const connect = async () => {
     // if Metamsk is not installed
     if (window.ethereum === undefined) {
-      setNetworkError('Please install Metamask');
+      setErrorMessage('Please install Metamask');
       return;
     }
     await window.ethereum.request({
@@ -55,21 +53,14 @@ const useEthers = () => {
     addEventListeners();
   };
 
-  const dismissNetworkError = () => {
-    setNetworkError(null);
-  };
-
   return {
     connect,
     provider,
-    account,
-    networkError,
-    setNetworkError,
-    dismissNetworkError,
-    txBeingSent,
-    setTxBeingSent,
-    txError,
-    setTxError,
+    address,
+    errorMessage,
+    setErrorMessage,
+    loading,
+    setLoading,
     resetState,
   };
 };

@@ -8,8 +8,8 @@ import MessageBox from './components/MessageBox';
 const Container = styled.div``;
 
 function App() {
-  const { account } = useContext(EthersContext);
-  if (!account) {
+  const { address } = useContext(EthersContext);
+  if (!address) {
     return <ConnectWallet />;
   }
   return (

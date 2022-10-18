@@ -1,4 +1,5 @@
 import { useContext, useState, useEffect } from 'react';
+import { ethers } from 'ethers';
 import styled from 'styled-components';
 import EthersContext from '../contexts/ethersContext';
 import RifContext from '../contexts/rifContext';
@@ -17,20 +18,21 @@ const Block = styled.div`
 `;
 
 function Dashboard() {
-  const { account, provider, setNetworkError } = useContext(EthersContext);
+  const { address, provider, setErrorMessage } = useContext(EthersContext);
   const { rifBalance } = useContext(RifContext);
   const { voteTokenBalance } = useContext(VoteTokenContext);
 
   const [balance, setBalance] = useState(0);
   useEffect(() => {
     let interval;
-    if (account) {
+    if (address) {
       const getBalance = async () => {
         try {
-          setNetworkError(null);
-          setBalance(await provider.getBalance(account));
+          setErrorMessage(null);
+          const weiBalance = await provider.getBalance(address);
+          setBalance(ethers.utils.formatEther(weiBalance));
         } catch (error) {
-          setNetworkError(error.message);
+          setErrorMessage(error.message);
         }
       };
       getBalance();
@@ -38,13 +40,13 @@ function Dashboard() {
     }
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account, provider]);
+  }, [address, provider]);
   return (
     <Container>
       <Block>
         <h3>Account</h3>
-        <p>{`Address: ${account}`}</p>
-        <p>{`Balance: ${balance}`}</p>
+        <p>{`Address: ${address}`}</p>
+        <p>{`Balance: ${balance} RBTC`}</p>
       </Block>
       <Block>
         <h3>Tokens</h3>
