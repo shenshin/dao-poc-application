@@ -15,5 +15,6 @@ module.exports = task(
     } catch (error) {
       // do nothing
     }
+    console.log('Deleted all Hardhat artifacts, caches and deployments');
   },
 );
