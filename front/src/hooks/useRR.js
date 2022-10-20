@@ -5,7 +5,7 @@ const useRR = (props) => {
   const { contract } = useContract({ artifact, ...props });
 
   return {
-    RRContract: contract,
+    rrContract: contract,
   };
 };
 

@@ -15,7 +15,7 @@ const useERC20 = (props) => {
         try {
           setErrorMessage(null);
           const bal = await contract.balanceOf(address);
-          setBalance(bal.div(10n ** 18n));
+          setBalance(bal.div(10n ** 18n).toNumber());
         } catch (error) {
           setErrorMessage(error.message);
         }

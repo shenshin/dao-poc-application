@@ -2,8 +2,6 @@ import { useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import styled from 'styled-components';
 import EthersContext from '../contexts/ethersContext';
-import RifContext from '../contexts/rifContext';
-import VoteTokenContext from '../contexts/voteTokenContext';
 import { SC_UPDATE_FREQUENCY } from '../utils/constants';
 
 const Container = styled.div`
@@ -18,9 +16,8 @@ const Block = styled.div`
 `;
 
 function Dashboard() {
-  const { address, provider, setErrorMessage } = useContext(EthersContext);
-  const { rifBalance } = useContext(RifContext);
-  const { voteTokenBalance } = useContext(VoteTokenContext);
+  const { address, provider, setErrorMessage, rifBalance, voteTokenBalance } =
+    useContext(EthersContext);
 
   const [balance, setBalance] = useState(0);
   useEffect(() => {

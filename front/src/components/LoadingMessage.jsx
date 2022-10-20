@@ -6,7 +6,7 @@ function LoadingMessage() {
   return (
     loading && (
       <div>
-        Waiting for transaction <strong>{loading}</strong>
+        <strong>{loading}</strong>
       </div>
     )
   );
