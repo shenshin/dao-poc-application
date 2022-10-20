@@ -111,7 +111,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
         ),
       );
     });
-
+    // tx 3: delegate voting power
     it('RIFVote token holders should self-delegate the voting power', async () => {
       await Promise.all(
         voters.map(async (voter, i) => {
