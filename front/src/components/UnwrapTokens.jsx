@@ -46,7 +46,6 @@ function UnwrapTokens() {
       </Note>
       <div>
         <label htmlFor="vote-token-amount">
-          Enter Vote tokens amount&nbsp;
           <input
             type="number"
             value={tokenAmount}
@@ -55,6 +54,7 @@ function UnwrapTokens() {
             onChange={updateTokenAmount}
             name="vote-token-amount"
           />
+          &nbsp;Vote tokens
         </label>
       </div>
       <button type="button" onClick={unwrapTokens}>
