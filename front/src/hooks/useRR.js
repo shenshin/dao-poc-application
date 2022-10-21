@@ -1,14 +1,11 @@
 import useContract from './useContract';
 import artifact from '../contracts/31/RevenueRedistributor.json';
 
-const useRR = ({ provider }) => {
-  const { contract } = useContract({
-    artifact,
-    provider,
-  });
+const useRR = (props) => {
+  const { contract } = useContract({ artifact, ...props });
 
   return {
-    RRContract: contract,
+    rrContract: contract,
   };
 };
 

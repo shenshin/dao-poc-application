@@ -1,32 +1,26 @@
 import { useContext } from 'react';
-import './App.css';
-import ConnectWallet from './components/ConnectWallet';
-import WaitingForTxMessage from './components/WaitingForTxMessage';
+import styled from 'styled-components';
 import EthersContext from './contexts/ethersContext';
-import RifContext from './contexts/rifContext';
-import VoteTokenContext from './contexts/voteTokenContext';
+import ConnectWallet from './components/ConnectWallet';
+import Dashboard from './components/Dashboard';
+import MessageBox from './components/MessageBox';
+import WrapTokens from './components/WrapTokens';
+import UnwrapTokens from './components/UnwrapTokens';
+
+const Container = styled.div``;
 
 function App() {
-  const { account } = useContext(EthersContext);
-  const { rifBalance, approve } = useContext(RifContext);
-  const { voteTokenContract, voteTokenBalance } = useContext(VoteTokenContext);
-
-  if (!account) {
+  const { address } = useContext(EthersContext);
+  if (!address) {
     return <ConnectWallet />;
   }
   return (
-    <div className="App">
-      <WaitingForTxMessage />
-      <p>{`Selected account: ${account}`}</p>
-      <p>{`RIF balance: ${rifBalance}`}</p>
-      <p>{`Vote token balance: ${voteTokenBalance}`}</p>
-      <button
-        type="button"
-        onClick={() => approve(voteTokenContract.address, 10n ** 18n)}
-      >
-        Approve few RIFs
-      </button>
-    </div>
+    <Container>
+      <Dashboard />
+      <WrapTokens />
+      <UnwrapTokens />
+      <MessageBox />
+    </Container>
   );
 }
 

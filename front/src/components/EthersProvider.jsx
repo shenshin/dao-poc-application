@@ -1,8 +1,5 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 import EthersContext from '../contexts/ethersContext';
-import RifContext from '../contexts/rifContext';
-import VoteTokenContext from '../contexts/voteTokenContext';
-import GovernorContext from '../contexts/governorContext';
-import RRContext from '../contexts/RRContext';
 
 import useEthers from '../hooks/useEthers';
 import useRIFToken from '../hooks/useRIFToken';
@@ -17,15 +14,16 @@ function EthersProvider({ children }) {
   const voteTokenProps = useVoteToken(ethersProps);
   const governorProps = useGovernor(ethersProps);
   const rrProps = useRR(ethersProps);
+  const contextValue = {
+    ...ethersProps,
+    ...rifProps,
+    ...voteTokenProps,
+    ...governorProps,
+    ...rrProps,
+  };
   return (
-    <EthersContext.Provider value={ethersProps}>
-      <RifContext.Provider value={rifProps}>
-        <VoteTokenContext.Provider value={voteTokenProps}>
-          <GovernorContext.Provider value={governorProps}>
-            <RRContext.Provider value={rrProps}>{children}</RRContext.Provider>
-          </GovernorContext.Provider>
-        </VoteTokenContext.Provider>
-      </RifContext.Provider>
+    <EthersContext.Provider value={contextValue}>
+      {children}
     </EthersContext.Provider>
   );
 }
