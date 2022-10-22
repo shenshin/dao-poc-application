@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import MessageBox from './components/MessageBox';
 import WrapTokens from './components/WrapTokens';
 import UnwrapTokens from './components/UnwrapTokens';
+import CreateRrProposal from './components/CreateRrProposal';
 
 const Container = styled.div``;
 
@@ -18,6 +19,7 @@ function App() {
     <Container>
       <Dashboard />
       <WrapTokens />
+      <CreateRrProposal />
       <UnwrapTokens />
       <MessageBox />
     </Container>

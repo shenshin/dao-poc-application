@@ -1,55 +1,62 @@
-import { useContext, useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { useContext } from 'react';
 import styled from 'styled-components';
 import EthersContext from '../contexts/ethersContext';
-import { SC_UPDATE_FREQUENCY } from '../utils/constants';
+import useRbtcBalance from '../hooks/useRbtcBalance';
 
 const Container = styled.div`
+  padding: 0.5rem;
+  border: 1px solid white;
+`;
+const UserDashboard = styled.div`
   width: 100%;
   display: flex;
-  gap: 0.2rem;
+`;
+const TreasuryDashboard = styled.div`
+  padding: 0.5rem;
 `;
 const Block = styled.div`
   padding: 0.5rem;
   flex-basis: 50%;
-  border: 1px solid white;
 `;
 
 function Dashboard() {
-  const { address, provider, setErrorMessage, rifBalance, voteTokenBalance } =
-    useContext(EthersContext);
+  const {
+    address,
+    provider,
+    setErrorMessage,
+    rifBalance,
+    voteTokenBalance,
+    rrContract,
+  } = useContext(EthersContext);
 
-  const [balance, setBalance] = useState(0);
-  useEffect(() => {
-    let interval;
-    if (address) {
-      const getBalance = async () => {
-        try {
-          setErrorMessage(null);
-          const weiBalance = await provider.getBalance(address);
-          setBalance(ethers.utils.formatEther(weiBalance));
-        } catch (error) {
-          setErrorMessage(error.message);
-        }
-      };
-      getBalance();
-      interval = setInterval(getBalance, SC_UPDATE_FREQUENCY);
-    }
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, provider]);
+  const userRbtcBalance = useRbtcBalance({
+    address,
+    provider,
+    setErrorMessage,
+  });
+  const treasuryRbtcBalance = useRbtcBalance({
+    address: rrContract?.address,
+    provider,
+    setErrorMessage,
+  });
   return (
     <Container>
-      <Block>
-        <h3>Account</h3>
-        <p>{`Address: ${address}`}</p>
-        <p>{`Balance: ${balance} RBTC`}</p>
-      </Block>
-      <Block>
-        <h3>Tokens</h3>
-        <p>{`RIF balance: ${rifBalance}`}</p>
-        <p>{`Vote token balance: ${voteTokenBalance}`}</p>
-      </Block>
+      <UserDashboard>
+        <Block>
+          <h3>Account</h3>
+          <p>{`Address: ${address}`}</p>
+          <p>{`Balance: ${userRbtcBalance} RBTC`}</p>
+        </Block>
+        <Block>
+          <h3>Tokens</h3>
+          <p>{`RIF balance: ${rifBalance} RIFs`}</p>
+          <p>{`Vote token balance: ${voteTokenBalance} Vote tokens`}</p>
+        </Block>
+      </UserDashboard>
+      <TreasuryDashboard>
+        <h3>Rootstock treasury</h3>
+        <p>{`Treasury size: ${treasuryRbtcBalance} RBTC`}</p>
+      </TreasuryDashboard>
     </Container>
   );
 }
