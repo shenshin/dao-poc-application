@@ -40,10 +40,10 @@ function Navigation({ children }) {
           </StyledNavLink>
         </NavItem>
         <NavItem>
-          <StyledNavLink to="/unwrap">Unwrap RIF tokens</StyledNavLink>
+          <StyledNavLink to="/vote">Vote for proposal</StyledNavLink>
         </NavItem>
         <NavItem>
-          <StyledNavLink to="/vote">Vote for proposal</StyledNavLink>
+          <StyledNavLink to="/unwrap">Unwrap RIF tokens</StyledNavLink>
         </NavItem>
       </NavSection>
       <PageSection>{children}</PageSection>

@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EthersContext from '../contexts/ethersContext';
 import ProposalContext from '../contexts/proposalContext';
 import Container from '../styles/container';
@@ -8,9 +9,11 @@ import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
 const secondsInDay = 86400;
 
 function CreateRrProposal() {
-  const { rrContract, setErrorMessage, setLoading } = useContext(EthersContext);
+  const navigate = useNavigate();
+  const { rrContract, governorContract, setErrorMessage, setLoading } =
+    useContext(EthersContext);
 
-  const { createProposal, proposals } = useContext(ProposalContext);
+  const { addProposal, proposals } = useContext(ProposalContext);
 
   // percent of treasury to distribute
   const [percent, setPercent] = useState(50);
@@ -37,13 +40,19 @@ function CreateRrProposal() {
         'initiateRedistribution',
         [duration * secondsInDay, percent],
       );
-      const proposal = {
-        addresses: [rrContract.address],
-        amounts: [0],
-        calldatas: [initiateRrCalldata],
+      const addresses = [rrContract.address];
+      const amounts = [0];
+      const calldatas = [initiateRrCalldata];
+      const tx = await governorContract.propose(
+        addresses,
+        amounts,
+        calldatas,
         description,
-      };
-      await createProposal(proposal);
+      );
+      setLoading(`Sending tx ${tx.hash}`);
+      await tx.wait();
+      addProposal({ addresses, amounts, calldatas, description });
+      navigate('/vote');
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);
