@@ -42,6 +42,9 @@ function Navigation({ children }) {
         <NavItem>
           <StyledNavLink to="/unwrap">Unwrap RIF tokens</StyledNavLink>
         </NavItem>
+        <NavItem>
+          <StyledNavLink to="/vote">Vote for proposal</StyledNavLink>
+        </NavItem>
       </NavSection>
       <PageSection>{children}</PageSection>
     </Container>

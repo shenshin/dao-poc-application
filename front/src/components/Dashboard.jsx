@@ -1,18 +1,16 @@
 import { useContext } from 'react';
 import styled from 'styled-components';
 import EthersContext from '../contexts/ethersContext';
+import ProposalContext from '../contexts/proposalContext';
 import useRbtcBalance from '../hooks/useRbtcBalance';
 
 const Container = styled.div`
   padding: 0.5rem;
   border: 1px solid white;
 `;
-const UserDashboard = styled.div`
+const Row = styled.div`
   width: 100%;
   display: flex;
-`;
-const TreasuryDashboard = styled.div`
-  padding: 0.5rem;
 `;
 const Block = styled.div`
   padding: 0.5rem;
@@ -29,6 +27,8 @@ function Dashboard() {
     rrContract,
   } = useContext(EthersContext);
 
+  const { proposals } = useContext(ProposalContext);
+
   const userRbtcBalance = useRbtcBalance({
     address,
     provider,
@@ -41,7 +41,7 @@ function Dashboard() {
   });
   return (
     <Container>
-      <UserDashboard>
+      <Row>
         <Block>
           <h3>Account</h3>
           <p>{`Address: ${address ?? 'Connect your wallet'}`}</p>
@@ -52,11 +52,23 @@ function Dashboard() {
           <p>{`RIF balance: ${rifBalance} RIFs`}</p>
           <p>{`Vote token balance: ${voteTokenBalance} Vote tokens`}</p>
         </Block>
-      </UserDashboard>
-      <TreasuryDashboard>
-        <h3>Rootstock treasury</h3>
-        <p>{`Treasury size: ${treasuryRbtcBalance} RBTC`}</p>
-      </TreasuryDashboard>
+      </Row>
+      <Row>
+        <Block>
+          <h3>Rootstock treasury</h3>
+          <p>{`Treasury size: ${treasuryRbtcBalance} RBTC`}</p>
+        </Block>
+        <Block>
+          <h3>Active proposals</h3>
+          {proposals.length === 0 ? (
+            <p>No active proposals</p>
+          ) : (
+            proposals.map(({ description }) => (
+              <p key={description}>{description}</p>
+            ))
+          )}
+        </Block>
+      </Row>
     </Container>
   );
 }
