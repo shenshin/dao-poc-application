@@ -1,11 +1,12 @@
 import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import EthersContext from '../contexts/ethersContext';
 import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
 import Container from '../styles/container';
 import Note from '../styles/note';
 
-function WrapTokens() {
+function Enfranchisement() {
   const {
     address,
     setErrorMessage,
@@ -17,6 +18,8 @@ function WrapTokens() {
 
   // actual token balance / 10^18
   const [tokenAmount, setTokenAmount] = useState(0);
+
+  const navigate = useNavigate();
 
   const wrapTokens = async () => {
     try {
@@ -42,6 +45,7 @@ function WrapTokens() {
       const delegateTx = await voteTokenContract.delegate(address);
       setLoading(`Sending tx ${delegateTx.hash}`);
       await delegateTx.wait();
+      navigate('/create-proposal/');
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);
@@ -92,4 +96,4 @@ function WrapTokens() {
   );
 }
 
-export default WrapTokens;
+export default Enfranchisement;

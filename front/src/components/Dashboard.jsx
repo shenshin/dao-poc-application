@@ -44,7 +44,7 @@ function Dashboard() {
       <UserDashboard>
         <Block>
           <h3>Account</h3>
-          <p>{`Address: ${address}`}</p>
+          <p>{`Address: ${address ?? 'Connect your wallet'}`}</p>
           <p>{`Balance: ${userRbtcBalance} RBTC`}</p>
         </Block>
         <Block>

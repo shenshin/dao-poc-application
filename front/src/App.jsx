@@ -1,28 +1,34 @@
 import { useContext } from 'react';
-import styled from 'styled-components';
-import EthersContext from './contexts/ethersContext';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import ConnectWallet from './components/ConnectWallet';
 import Dashboard from './components/Dashboard';
 import MessageBox from './components/MessageBox';
-import WrapTokens from './components/WrapTokens';
+import Enfranchisement from './components/Enfranchisement';
 import UnwrapTokens from './components/UnwrapTokens';
 import CreateRrProposal from './components/CreateRrProposal';
-
-const Container = styled.div``;
+import Navigation from './components/Navigation';
+import EthersContext from './contexts/ethersContext';
 
 function App() {
   const { address } = useContext(EthersContext);
   if (!address) {
-    return <ConnectWallet />;
+    return (
+      <Routes>
+        <Route path="*" element={<ConnectWallet />} />
+      </Routes>
+    );
   }
   return (
-    <Container>
+    <Navigation>
       <Dashboard />
-      <WrapTokens />
-      <CreateRrProposal />
-      <UnwrapTokens />
+      <Routes>
+        <Route path="*" element={<Navigate to="/enfranchisement" />} />
+        <Route path="/enfranchisement" element={<Enfranchisement />} />
+        <Route path="/create-proposal" element={<CreateRrProposal />} />
+        <Route path="/unwrap" element={<UnwrapTokens />} />
+      </Routes>
       <MessageBox />
-    </Container>
+    </Navigation>
   );
 }
 
