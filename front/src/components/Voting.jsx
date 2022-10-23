@@ -1,4 +1,5 @@
 import { useContext, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EthersContext from '../contexts/ethersContext';
 import ProposalContext from '../contexts/proposalContext';
 import {
@@ -10,6 +11,7 @@ import Note from '../styles/note';
 import { calculateProposalId } from '../utils/functions';
 
 function Voting() {
+  const navigate = useNavigate();
   const { governorContract, setErrorMessage, setLoading } =
     useContext(EthersContext);
 
@@ -35,6 +37,7 @@ function Voting() {
       const tx = await governorContract.castVote(proposalId, voteType);
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
+      navigate('/execute');
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);
