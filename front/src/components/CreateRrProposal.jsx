@@ -94,7 +94,7 @@ function CreateRrProposal() {
         </label>
       </div>
       <button type="button" onClick={createProposal}>
-        Propose the RR
+        Submit Proposal
       </button>
     </Container>
   );
