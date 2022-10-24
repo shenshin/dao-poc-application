@@ -24,10 +24,18 @@ function ExecuteProposal() {
   };
 
   const validateProposalState = async (proposal) => {
-    const proposalId = calculateProposalId(proposal);
-    const proposalState = await governorContract.state(proposalId);
-    if (proposalState !== ProposalState.Succeeded)
-      throw new Error(`Proposal "${proposal.description}" was not successful`);
+    let proposalState;
+    try {
+      const proposalId = calculateProposalId(proposal);
+      // if this tx rejects, it means proposal with this ID was not initiated yet
+      proposalState = await governorContract.state(proposalId);
+    } catch (error) {
+      throw new Error(`Proposal "${proposal.description}" doesn not exist`);
+    }
+    if (proposalState !== ProposalState.Succeeded) {
+      const optionName = Object.keys(ProposalState)[proposalState];
+      throw new Error(`Proposal "${proposal.description}" is ${optionName}`);
+    }
   };
 
   const execute = async () => {
