@@ -1,4 +1,5 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EthersContext from '../contexts/ethersContext';
 import ProposalContext from '../contexts/proposalContext';
 import Container from '../styles/container';
@@ -8,17 +9,18 @@ import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
 const secondsInDay = 86400;
 
 function CreateRrProposal() {
+  const navigate = useNavigate();
   const { rrContract, governorContract, setErrorMessage, setLoading } =
     useContext(EthersContext);
 
-  const {
-    percent,
-    setPercent,
-    duration, // days
-    setDuration,
-    description,
-    setDescription,
-  } = useContext(ProposalContext);
+  const { addProposal, proposals } = useContext(ProposalContext);
+
+  // percent of treasury to distribute
+  const [percent, setPercent] = useState(50);
+  // RR duration, days
+  const [duration, setDuration] = useState(1);
+  // unique proposal description
+  const [description, setDescription] = useState('RR proposal #1');
 
   const validateParams = () => {
     if (percent <= 0 || percent > 100)
@@ -26,9 +28,11 @@ function CreateRrProposal() {
     if (duration < 1 || duration > 100)
       throw new Error('Incorrect duration value');
     if (!description) throw new Error('Specify a proposal description');
+    if (proposals.some((proposal) => proposal.description === description))
+      throw new Error('Proposal description should be unique');
   };
 
-  const createProposal = async () => {
+  const createRRProposal = async () => {
     try {
       setErrorMessage(null);
       validateParams();
@@ -36,10 +40,19 @@ function CreateRrProposal() {
         'initiateRedistribution',
         [duration * secondsInDay, percent],
       );
-      const proposal = [[rrContract.address], [0], [initiateRrCalldata]];
-      const tx = await governorContract.propose(...proposal, description);
-      setLoading(`Sending tx: ${tx.hash}`);
+      const addresses = [rrContract.address];
+      const amounts = [0];
+      const calldatas = [initiateRrCalldata];
+      const tx = await governorContract.propose(
+        addresses,
+        amounts,
+        calldatas,
+        description,
+      );
+      setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
+      addProposal({ addresses, amounts, calldatas, description });
+      navigate('/vote');
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);
@@ -93,7 +106,7 @@ function CreateRrProposal() {
           />
         </label>
       </div>
-      <button type="button" onClick={createProposal}>
+      <button type="button" onClick={createRRProposal}>
         Submit Proposal
       </button>
     </Container>

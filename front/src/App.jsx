@@ -8,6 +8,8 @@ import UnwrapTokens from './components/UnwrapTokens';
 import CreateRrProposal from './components/CreateRrProposal';
 import Navigation from './components/Navigation';
 import EthersContext from './contexts/ethersContext';
+import Voting from './components/Voting';
+import ExecuteProposal from './components/ExecuteProposal';
 
 function App() {
   const { address } = useContext(EthersContext);
@@ -26,6 +28,8 @@ function App() {
         <Route path="/enfranchisement" element={<Enfranchisement />} />
         <Route path="/create-proposal" element={<CreateRrProposal />} />
         <Route path="/unwrap" element={<UnwrapTokens />} />
+        <Route path="/vote" element={<Voting />} />
+        <Route path="/execute" element={<ExecuteProposal />} />
       </Routes>
       <MessageBox />
     </Navigation>
