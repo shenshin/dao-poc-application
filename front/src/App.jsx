@@ -1,17 +1,19 @@
 import { useContext } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
+import EthersContext from './contexts/ethersContext';
+import { RouteNames } from './utils/constants';
+// components
 import ConnectWallet from './components/ConnectWallet';
 import Dashboard from './components/Dashboard';
 import MessageBox from './components/MessageBox';
-import Enfranchisement from './components/Enfranchisement';
-import UnwrapTokens from './components/UnwrapTokens';
-import CreateRrProposal from './components/CreateRrProposal';
 import Navigation from './components/Navigation';
-import EthersContext from './contexts/ethersContext';
-import Voting from './components/Voting';
-import ExecuteProposal from './components/ExecuteProposal';
-import AcquireRevenue from './components/AcquireRevenue';
-import { RouteNames } from './utils/constants';
+// screens
+import Enfranchisement from './components/screens/Enfranchisement';
+import CreateRrProposal from './components/screens/CreateRrProposal';
+import Voting from './components/screens/Voting';
+import ExecuteProposal from './components/screens/ExecuteProposal';
+import AcquireRevenue from './components/screens/AcquireRevenue';
+import UnwrapTokens from './components/screens/UnwrapTokens';
 
 function App() {
   const { address } = useContext(EthersContext);

@@ -1,44 +1,50 @@
 import { useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../contexts/ethersContext';
-import ProposalContext from '../contexts/proposalContext';
+import EthersContext from '../../contexts/ethersContext';
+import ProposalContext from '../../contexts/proposalContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
-  VoteOptions,
+  ProposalState,
   RouteNames,
-} from '../utils/constants';
-import Container from '../styles/container';
-import Note from '../styles/note';
-import { calculateProposalId } from '../utils/functions';
+} from '../../utils/constants';
+import Container from '../../styles/container';
+import Note from '../../styles/note';
+import { calculateProposalId, getDescriptionHash } from '../../utils/functions';
 
-function Voting() {
+function ExecuteProposal() {
   const navigate = useNavigate();
   const { governorContract, setErrorMessage, setLoading } =
     useContext(EthersContext);
-
   const { proposals } = useContext(ProposalContext);
 
   const selectedProposalIndex = useRef(0);
-  const selectedVoteType = useRef(0);
 
   const selectProposal = (event) => {
     selectedProposalIndex.current = event.target.value;
   };
 
-  const selectVoteType = (event) => {
-    selectedVoteType.current = event.target.value;
+  const validateProposalState = async (proposal) => {
+    const proposalId = calculateProposalId(proposal);
+    const proposalState = await governorContract.state(proposalId);
+    if (proposalState !== ProposalState.Succeeded)
+      throw new Error(`Proposal "${proposal.description}" was not successful`);
   };
 
-  const vote = async () => {
+  const execute = async () => {
     try {
       setErrorMessage(null);
       const proposal = proposals[selectedProposalIndex.current];
-      const proposalId = calculateProposalId(proposal);
-      const voteType = selectedVoteType.current;
-      const tx = await governorContract.castVote(proposalId, voteType);
+      await validateProposalState(proposal);
+      const { addresses, amounts, calldatas, description } = proposal;
+      const tx = await governorContract.execute(
+        addresses,
+        amounts,
+        calldatas,
+        getDescriptionHash(description),
+      );
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
-      navigate(RouteNames.executeProposal);
+      navigate(RouteNames.acquireRevenue);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);
@@ -51,8 +57,8 @@ function Voting() {
   return (
     <Container>
       <Note>
-        <h4>Voting for a proposal</h4>
-        <p>Select a proposal</p>
+        <h4>Proposal execution</h4>
+        <p>Select a proposal to execute</p>
       </Note>
       <div>
         {proposals.length === 0 ? (
@@ -71,20 +77,8 @@ function Voting() {
                 </select>
               </label>
             </div>
-            <div>
-              <label htmlFor="vote">
-                Vote &nbsp;
-                <select onChange={selectVoteType}>
-                  {VoteOptions.map((option, i) => (
-                    <option value={i} key={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <button type="button" onClick={vote}>
-              Cast vote
+            <button type="button" onClick={execute}>
+              Execute
             </button>
           </>
         )}
@@ -93,4 +87,4 @@ function Voting() {
   );
 }
 
-export default Voting;
+export default ExecuteProposal;

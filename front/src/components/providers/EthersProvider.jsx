@@ -1,11 +1,11 @@
 /* eslint-disable react/jsx-no-constructed-context-values */
-import EthersContext from '../contexts/ethersContext';
+import EthersContext from '../../contexts/ethersContext';
 
-import useEthers from '../hooks/useEthers';
-import useRIFToken from '../hooks/useRIFToken';
-import useVoteToken from '../hooks/useVoteToken';
-import useGovernor from '../hooks/useGovernor';
-import useRR from '../hooks/useRR';
+import useEthers from '../../hooks/useEthers';
+import useRIFToken from '../../hooks/useRIFToken';
+import useVoteToken from '../../hooks/useVoteToken';
+import useGovernor from '../../hooks/useGovernor';
+import useRR from '../../hooks/useRR';
 
 // inject ethers.js and all smart contracts to React context state
 function EthersProvider({ children }) {

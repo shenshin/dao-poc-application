@@ -1,10 +1,13 @@
 import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../contexts/ethersContext';
-import ProposalContext from '../contexts/proposalContext';
-import Container from '../styles/container';
-import Note from '../styles/note';
-import { ERROR_CODE_TX_REJECTED_BY_USER, RouteNames } from '../utils/constants';
+import EthersContext from '../../contexts/ethersContext';
+import ProposalContext from '../../contexts/proposalContext';
+import Container from '../../styles/container';
+import Note from '../../styles/note';
+import {
+  ERROR_CODE_TX_REJECTED_BY_USER,
+  RouteNames,
+} from '../../utils/constants';
 
 const secondsInDay = 86400;
 
