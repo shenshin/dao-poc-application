@@ -1,15 +1,18 @@
 import { useContext, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EthersContext from '../contexts/ethersContext';
 import ProposalContext from '../contexts/proposalContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   ProposalState,
+  RouteNames,
 } from '../utils/constants';
 import Container from '../styles/container';
 import Note from '../styles/note';
 import { calculateProposalId, getDescriptionHash } from '../utils/functions';
 
 function ExecuteProposal() {
+  const navigate = useNavigate();
   const { governorContract, setErrorMessage, setLoading } =
     useContext(EthersContext);
   const { proposals } = useContext(ProposalContext);
@@ -41,6 +44,7 @@ function ExecuteProposal() {
       );
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
+      navigate(RouteNames.acquireRevenue);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);

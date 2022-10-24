@@ -10,6 +10,8 @@ import Navigation from './components/Navigation';
 import EthersContext from './contexts/ethersContext';
 import Voting from './components/Voting';
 import ExecuteProposal from './components/ExecuteProposal';
+import AcquireRevenue from './components/AcquireRevenue';
+import { RouteNames } from './utils/constants';
 
 function App() {
   const { address } = useContext(EthersContext);
@@ -24,12 +26,25 @@ function App() {
     <Navigation>
       <Dashboard />
       <Routes>
-        <Route path="*" element={<Navigate to="/enfranchisement" />} />
-        <Route path="/enfranchisement" element={<Enfranchisement />} />
-        <Route path="/create-proposal" element={<CreateRrProposal />} />
-        <Route path="/unwrap" element={<UnwrapTokens />} />
-        <Route path="/vote" element={<Voting />} />
-        <Route path="/execute" element={<ExecuteProposal />} />
+        <Route
+          path="*"
+          element={<Navigate to={RouteNames.enfranchisement} />}
+        />
+        <Route
+          path={RouteNames.enfranchisement}
+          element={<Enfranchisement />}
+        />
+        <Route
+          path={RouteNames.createRrProposal}
+          element={<CreateRrProposal />}
+        />
+        <Route path={RouteNames.unwrapTokens} element={<UnwrapTokens />} />
+        <Route path={RouteNames.voteForProposal} element={<Voting />} />
+        <Route
+          path={RouteNames.executeProposal}
+          element={<ExecuteProposal />}
+        />
+        <Route path={RouteNames.acquireRevenue} element={<AcquireRevenue />} />
       </Routes>
       <MessageBox />
     </Navigation>

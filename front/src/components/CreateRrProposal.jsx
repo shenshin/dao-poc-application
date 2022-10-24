@@ -4,7 +4,7 @@ import EthersContext from '../contexts/ethersContext';
 import ProposalContext from '../contexts/proposalContext';
 import Container from '../styles/container';
 import Note from '../styles/note';
-import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
+import { ERROR_CODE_TX_REJECTED_BY_USER, RouteNames } from '../utils/constants';
 
 const secondsInDay = 86400;
 
@@ -52,7 +52,7 @@ function CreateRrProposal() {
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
       addProposal({ addresses, amounts, calldatas, description });
-      navigate('/vote');
+      navigate(RouteNames.voteForProposal);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);

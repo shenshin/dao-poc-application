@@ -11,3 +11,11 @@ export const ProposalState = {
   Expired: 6,
   Executed: 7,
 };
+export const RouteNames = {
+  enfranchisement: '/enfranchisement',
+  createRrProposal: '/create-rr-proposal',
+  voteForProposal: '/vote',
+  executeProposal: '/execute-proposal',
+  acquireRevenue: '/acquire-revenue',
+  unwrapTokens: '/unwrap-tokens',
+};

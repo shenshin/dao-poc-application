@@ -1,11 +1,13 @@
 import { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import EthersContext from '../contexts/ethersContext';
-import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
+import { ERROR_CODE_TX_REJECTED_BY_USER, RouteNames } from '../utils/constants';
 import Container from '../styles/container';
 import Note from '../styles/note';
 
 function UnwrapTokens() {
+  const navigate = useNavigate();
   const {
     address,
     setErrorMessage,
@@ -26,6 +28,7 @@ function UnwrapTokens() {
       const tx = await voteTokenContract.withdrawTo(address, tokensToWithdraw);
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
+      navigate(RouteNames.enfranchisement);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);
