@@ -1,25 +1,101 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
+import { useState } from 'react';
+import { ethers } from 'ethers';
 import EthersContext from '../../contexts/ethersContext';
-
-import useEthers from '../../hooks/useEthers';
-import useRIFToken from '../../hooks/useRIFToken';
-import useVoteToken from '../../hooks/useVoteToken';
-import useGovernor from '../../hooks/useGovernor';
-import useRR from '../../hooks/useRR';
+import useContract from '../../hooks/useContract';
+import useERC20 from '../../hooks/useERC20';
+import { RSK_TESTNET_NETWORK_ID } from '../../utils/constants';
+// smart contract artifacts
+import rifArtifact from '../../contracts/31/RIFToken.json';
+import voteArtifact from '../../contracts/31/RIFVoteToken.json';
+import governorArtifact from '../../contracts/31/GovernorFT.json';
+import rrArtifact from '../../contracts/31/RevenueRedistributor.json';
 
 // inject ethers.js and all smart contracts to React context state
 function EthersProvider({ children }) {
-  const ethersProps = useEthers();
-  const rifProps = useRIFToken(ethersProps);
-  const voteTokenProps = useVoteToken(ethersProps);
-  const governorProps = useGovernor(ethersProps);
-  const rrProps = useRR(ethersProps);
+  const [provider, setProvider] = useState(null);
+  const [address, setAddress] = useState(null);
+  const [loading, setLoading] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const resetState = () => {
+    setProvider(null);
+    setAddress(null);
+    setLoading(null);
+    setErrorMessage(null);
+  };
+
+  const checkNetwork = async (ethersProvider) => {
+    const { chainId } = await ethersProvider.getNetwork();
+    if (chainId !== RSK_TESTNET_NETWORK_ID) {
+      resetState();
+      setErrorMessage('Please connect to RSK Testnet');
+      return false;
+    }
+    return true;
+  };
+
+  const initialiseWeb3Provider = async () => {
+    const ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
+    if (!(await checkNetwork(ethersProvider))) return;
+    const [selectedAddress] = await ethersProvider.listAccounts();
+    setProvider(ethersProvider);
+    setAddress(selectedAddress);
+  };
+
+  const addEventListeners = () => {
+    window.ethereum.on('accountsChanged', initialiseWeb3Provider);
+    window.ethereum.on('chainChanged', initialiseWeb3Provider);
+  };
+
+  const connect = async () => {
+    // if Metamsk is not installed
+    if (window.ethereum === undefined) {
+      setErrorMessage('Please install Metamask');
+      return;
+    }
+    await window.ethereum.request({
+      method: 'eth_requestAccounts',
+    });
+    initialiseWeb3Provider();
+    addEventListeners();
+  };
+
+  // Smart contracts
+  const [rifContract, rifBalance] = useERC20({
+    provider,
+    address,
+    setErrorMessage,
+    artifact: rifArtifact,
+  });
+  const [voteTokenContract, voteTokenBalance, voteTotalSupply] = useERC20({
+    provider,
+    address,
+    setErrorMessage,
+    artifact: voteArtifact,
+  });
+  const governorContract = useContract({
+    provider,
+    artifact: governorArtifact,
+  });
+  const rrContract = useContract({ provider, artifact: rrArtifact });
+
   const contextValue = {
-    ...ethersProps,
-    ...rifProps,
-    ...voteTokenProps,
-    ...governorProps,
-    ...rrProps,
+    connect,
+    provider,
+    address,
+    errorMessage,
+    setErrorMessage,
+    loading,
+    setLoading,
+    resetState,
+    // contracts
+    rifContract,
+    rifBalance,
+    voteTokenContract,
+    voteTokenBalance,
+    voteTotalSupply,
+    governorContract,
+    rrContract,
   };
   return (
     <EthersContext.Provider value={contextValue}>
