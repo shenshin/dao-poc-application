@@ -25,7 +25,7 @@ contract RevenueRedistributor {
     mapping(uint256 => mapping(address => bool)) public acquired;
 
     event RevenueRedistributionInitiated(
-        uint256 id,
+        uint256 indexed id,
         uint256 amount,
         uint256 endsAt,
         uint256 snapshot
@@ -51,7 +51,7 @@ contract RevenueRedistributor {
         );
         // previous redistribution should be finished
         require(
-            !isActiveRedistribution(_rdCounter.current()),
+            !isActive(),
             'can not start a new redistribution before the previous one is still active'
         );
         _createNewRedistribution(_duration, _percent);
@@ -59,19 +59,12 @@ contract RevenueRedistributor {
 
     // to be called by the token holders to transfer their revenue
     function aquireRevenue() external {
-        uint256 rdId = _rdCounter.current();
         // make sure the rd is still active
-        require(
-            isActiveRedistribution(rdId),
-            'there is no active redistribution'
-        );
+        require(isActive(), 'there is no active redistribution');
         // make sure the revenue is not acquired yet
-        require(
-            !acquired[rdId][msg.sender],
-            'the revenue was already acquired'
-        );
+        require(!revenueAquired(), 'the revenue was already acquired');
         // make sure token owner can't acquire revenue again
-        acquired[rdId][msg.sender] = true;
+        acquired[_rdCounter.current()][msg.sender] = true;
         // send revenue to the sender
         uint256 amount = getRevenueAmount(msg.sender);
         (bool success, ) = msg.sender.call{value: amount}('');
@@ -90,26 +83,38 @@ contract RevenueRedistributor {
         return (currentRd.amount * holderBalance) / totalSupply;
     }
 
-    function isActiveRedistribution(uint256 _id) public view returns (bool) {
-        return redistributions[_id].endsAt >= block.timestamp;
+    // informs if the last redistribution is still active
+    function isActive() public view returns (bool) {
+        return redistributions[_rdCounter.current()].endsAt >= block.timestamp;
+    }
+
+    // informs if sender has already acquired his revenue
+    // in the current redistribution
+    function revenueAquired() public view returns (bool) {
+        return acquired[_rdCounter.current()][msg.sender];
+    }
+
+    // returns ID of the current redistribution in case someone wants
+    // to see its params by calling `distributions(id)`
+    function getCurrentId() external view returns (uint256) {
+        return _rdCounter.current();
     }
 
     function _createNewRedistribution(uint256 _duration, uint256 _percent)
         private
     {
         _rdCounter.increment();
-        uint256 newRdId = _rdCounter.current();
         uint256 newRdAmount = (address(this).balance * _percent) / 100;
         uint256 snapshot = voteToken.makeSnapshot();
         uint256 endsAt = block.timestamp + _duration;
-        redistributions[newRdId] = Redistribution({
+        redistributions[_rdCounter.current()] = Redistribution({
             endsAt: endsAt,
             amount: newRdAmount,
             voteTokenSnapshot: snapshot
         });
 
         emit RevenueRedistributionInitiated(
-            newRdId,
+            _rdCounter.current(),
             newRdAmount,
             endsAt,
             snapshot
