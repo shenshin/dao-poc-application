@@ -81,7 +81,7 @@ async function getBalances(wallets) {
   );
   console.log(`\nWallets balances:\n`);
   balances.forEach((balance) => {
-    console.log(`${balance.walletId}: ${balance.address}`);
+    console.log(`Address: ${balance.address}`);
     console.log(`RBTC: ${hre.ethers.utils.formatEther(balance.rbtcBalance)}`);
     console.log(`RIF: ${balance.rifBalance}\n`);
   });

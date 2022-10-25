@@ -40,7 +40,6 @@ function ExecuteProposal() {
 
   const execute = async () => {
     try {
-      setErrorMessage(null);
       const proposal = proposals[selectedProposalIndex.current];
       await validateProposalState(proposal);
       const { addresses, amounts, calldatas, description } = proposal;

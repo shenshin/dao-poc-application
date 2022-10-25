@@ -9,7 +9,6 @@ function useRbtcBalance({ address, provider, setErrorMessage }) {
     if (address && provider) {
       const getBalance = async () => {
         try {
-          setErrorMessage(null);
           const weiBalance = await provider.getBalance(address);
           setBalance(ethers.utils.formatEther(weiBalance));
         } catch (error) {

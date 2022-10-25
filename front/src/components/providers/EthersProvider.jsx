@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import EthersContext from '../../contexts/ethersContext';
 import useContract from '../../hooks/useContract';
 import useERC20 from '../../hooks/useERC20';
-import { RSK_TESTNET_NETWORK_ID } from '../../utils/constants';
+import {
+  RSK_TESTNET_NETWORK_ID,
+  SC_UPDATE_FREQUENCY,
+} from '../../utils/constants';
 // smart contract artifacts
 import rifArtifact from '../../contracts/31/RIFToken.json';
 import voteArtifact from '../../contracts/31/RIFVoteToken.json';
@@ -16,6 +19,16 @@ function EthersProvider({ children }) {
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  useEffect(() => {
+    let timeout;
+    if (errorMessage) {
+      timeout = setTimeout(() => {
+        setErrorMessage(null);
+      }, SC_UPDATE_FREQUENCY);
+    }
+    return () => clearTimeout(timeout);
+  }, [errorMessage]);
 
   const resetState = () => {
     setProvider(null);
@@ -79,6 +92,21 @@ function EthersProvider({ children }) {
   });
   const rrContract = useContract({ provider, artifact: rrArtifact });
 
+  const [isActiveRr, setIsActiveRr] = useState(false);
+
+  useEffect(() => {
+    let interval;
+    if (rrContract) {
+      const queryRrContract = async () => {
+        const isActive = await rrContract.isActive();
+        setIsActiveRr(isActive);
+      };
+      queryRrContract();
+      setInterval(queryRrContract, SC_UPDATE_FREQUENCY);
+    }
+    return () => clearInterval(interval);
+  }, [rrContract, address]);
+
   const contextValue = {
     connect,
     provider,
@@ -96,6 +124,7 @@ function EthersProvider({ children }) {
     voteTotalSupply,
     governorContract,
     rrContract,
+    isActiveRr,
   };
   return (
     <EthersContext.Provider value={contextValue}>

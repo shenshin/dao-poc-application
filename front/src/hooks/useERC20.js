@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { BigNumber } from 'ethers';
 import useContract from './useContract';
-import { SC_UPDATE_FREQUENCY, RIF_DECIMALS } from '../utils/constants';
+import { SC_UPDATE_FREQUENCY } from '../utils/constants';
 
 const useERC20 = ({ setErrorMessage, address, provider, artifact }) => {
   const [balance, setBalance] = useState(0);
@@ -13,11 +14,12 @@ const useERC20 = ({ setErrorMessage, address, provider, artifact }) => {
     if (provider && contract) {
       const getBalance = async () => {
         try {
-          setErrorMessage(null);
+          const decimals = await contract.decimals();
+          const denominator = BigNumber.from(10).pow(decimals);
           const bal = await contract.balanceOf(address);
           const sup = await contract.totalSupply();
-          setBalance(bal.div(RIF_DECIMALS).toNumber());
-          setSupply(sup.div(RIF_DECIMALS).toNumber());
+          setBalance(bal.div(denominator).toNumber());
+          setSupply(sup.div(denominator).toNumber());
         } catch (error) {
           setErrorMessage(error.message);
         }

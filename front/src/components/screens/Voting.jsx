@@ -31,7 +31,6 @@ function Voting() {
 
   const vote = async () => {
     try {
-      setErrorMessage(null);
       const proposal = proposals[selectedProposalIndex.current];
       const proposalId = calculateProposalId(proposal);
       const voteType = selectedVoteType.current;
