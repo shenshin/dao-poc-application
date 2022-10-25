@@ -1,10 +1,13 @@
 import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
-import EthersContext from '../contexts/ethersContext';
-import { ERROR_CODE_TX_REJECTED_BY_USER } from '../utils/constants';
-import Container from '../styles/container';
-import Note from '../styles/note';
+import EthersContext from '../../contexts/ethersContext';
+import {
+  ERROR_CODE_TX_REJECTED_BY_USER,
+  RouteNames,
+} from '../../utils/constants';
+import Container from '../../styles/container';
+import Note from '../../styles/note';
 
 function Enfranchisement() {
   const {
@@ -45,7 +48,7 @@ function Enfranchisement() {
       const delegateTx = await voteTokenContract.delegate(address);
       setLoading(`Sending tx ${delegateTx.hash}`);
       await delegateTx.wait();
-      navigate('/create-proposal/');
+      navigate(RouteNames.createRrProposal);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);

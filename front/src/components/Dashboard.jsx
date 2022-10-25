@@ -24,6 +24,7 @@ function Dashboard() {
     setErrorMessage,
     rifBalance,
     voteTokenBalance,
+    voteTotalSupply,
     rrContract,
   } = useContext(EthersContext);
 
@@ -51,6 +52,7 @@ function Dashboard() {
           <h3>Tokens</h3>
           <p>{`RIF balance: ${rifBalance} RIFs`}</p>
           <p>{`Vote token balance: ${voteTokenBalance} Vote tokens`}</p>
+          <p>{`Vote token total supply: ${voteTotalSupply} Vote tokens`}</p>
         </Block>
       </Row>
       <Row>

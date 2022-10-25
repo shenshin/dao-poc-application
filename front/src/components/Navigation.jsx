@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import styled from 'styled-components';
+import { RouteNames } from '../utils/constants';
 
 const Container = styled.div`
   display: flex;
@@ -32,21 +33,34 @@ function Navigation({ children }) {
     <Container>
       <NavSection>
         <NavItem>
-          <StyledNavLink to="/enfranchisement">Enfranchisement</StyledNavLink>
+          <StyledNavLink to={RouteNames.enfranchisement}>
+            Enfranchisement
+          </StyledNavLink>
         </NavItem>
         <NavItem>
-          <StyledNavLink to="/create-proposal">
+          <StyledNavLink to={RouteNames.createRrProposal}>
             Create RR proposal
           </StyledNavLink>
         </NavItem>
         <NavItem>
-          <StyledNavLink to="/vote">Vote for proposal</StyledNavLink>
+          <StyledNavLink to={RouteNames.voteForProposal}>
+            Vote for proposal
+          </StyledNavLink>
         </NavItem>
         <NavItem>
-          <StyledNavLink to="/execute">Execute proposal</StyledNavLink>
+          <StyledNavLink to={RouteNames.executeProposal}>
+            Execute proposal
+          </StyledNavLink>
         </NavItem>
         <NavItem>
-          <StyledNavLink to="/unwrap">Unwrap RIF tokens</StyledNavLink>
+          <StyledNavLink to={RouteNames.acquireRevenue}>
+            Acquire revenue
+          </StyledNavLink>
+        </NavItem>
+        <NavItem>
+          <StyledNavLink to={RouteNames.unwrapTokens}>
+            Unwrap RIF tokens
+          </StyledNavLink>
         </NavItem>
       </NavSection>
       <PageSection>{children}</PageSection>

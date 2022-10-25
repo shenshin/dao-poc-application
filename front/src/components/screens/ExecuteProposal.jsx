@@ -1,15 +1,18 @@
 import { useContext, useRef } from 'react';
-import EthersContext from '../contexts/ethersContext';
-import ProposalContext from '../contexts/proposalContext';
+import { useNavigate } from 'react-router-dom';
+import EthersContext from '../../contexts/ethersContext';
+import ProposalContext from '../../contexts/proposalContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   ProposalState,
-} from '../utils/constants';
-import Container from '../styles/container';
-import Note from '../styles/note';
-import { calculateProposalId, getDescriptionHash } from '../utils/functions';
+  RouteNames,
+} from '../../utils/constants';
+import Container from '../../styles/container';
+import Note from '../../styles/note';
+import { calculateProposalId, getDescriptionHash } from '../../utils/functions';
 
 function ExecuteProposal() {
+  const navigate = useNavigate();
   const { governorContract, setErrorMessage, setLoading } =
     useContext(EthersContext);
   const { proposals } = useContext(ProposalContext);
@@ -21,10 +24,18 @@ function ExecuteProposal() {
   };
 
   const validateProposalState = async (proposal) => {
-    const proposalId = calculateProposalId(proposal);
-    const proposalState = await governorContract.state(proposalId);
-    if (proposalState !== ProposalState.Succeeded)
-      throw new Error(`Proposal "${proposal.description}" was not successful`);
+    let proposalState;
+    try {
+      const proposalId = calculateProposalId(proposal);
+      // if this tx rejects, it means proposal with this ID was not initiated yet
+      proposalState = await governorContract.state(proposalId);
+    } catch (error) {
+      throw new Error(`Proposal "${proposal.description}" doesn not exist`);
+    }
+    if (proposalState !== ProposalState.Succeeded) {
+      const optionName = Object.keys(ProposalState)[proposalState];
+      throw new Error(`Proposal "${proposal.description}" is ${optionName}`);
+    }
   };
 
   const execute = async () => {
@@ -41,6 +52,7 @@ function ExecuteProposal() {
       );
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
+      navigate(RouteNames.acquireRevenue);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);

@@ -14,9 +14,7 @@ const useContract = ({ artifact, provider }) => {
       ),
     );
   }, [provider, artifact]);
-  return {
-    contract,
-  };
+  return contract;
 };
 
 export default useContract;

@@ -1,14 +1,15 @@
 import { useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../contexts/ethersContext';
-import ProposalContext from '../contexts/proposalContext';
+import EthersContext from '../../contexts/ethersContext';
+import ProposalContext from '../../contexts/proposalContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   VoteOptions,
-} from '../utils/constants';
-import Container from '../styles/container';
-import Note from '../styles/note';
-import { calculateProposalId } from '../utils/functions';
+  RouteNames,
+} from '../../utils/constants';
+import Container from '../../styles/container';
+import Note from '../../styles/note';
+import { calculateProposalId } from '../../utils/functions';
 
 function Voting() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ function Voting() {
       const tx = await governorContract.castVote(proposalId, voteType);
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
-      navigate('/execute');
+      navigate(RouteNames.executeProposal);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
         setErrorMessage(error.message);

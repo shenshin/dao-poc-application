@@ -1,10 +1,17 @@
-import { ethers } from 'ethers';
-
 import { useState } from 'react';
+import { ethers } from 'ethers';
+import EthersContext from '../../contexts/ethersContext';
+import useContract from '../../hooks/useContract';
+import useERC20 from '../../hooks/useERC20';
+import { RSK_TESTNET_NETWORK_ID } from '../../utils/constants';
+// smart contract artifacts
+import rifArtifact from '../../contracts/31/RIFToken.json';
+import voteArtifact from '../../contracts/31/RIFVoteToken.json';
+import governorArtifact from '../../contracts/31/GovernorFT.json';
+import rrArtifact from '../../contracts/31/RevenueRedistributor.json';
 
-const RSK_TESTNET_NETWORK_ID = 31;
-
-const useEthers = () => {
+// inject ethers.js and all smart contracts to React context state
+function EthersProvider({ children }) {
   const [provider, setProvider] = useState(null);
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(null);
@@ -53,7 +60,26 @@ const useEthers = () => {
     addEventListeners();
   };
 
-  return {
+  // Smart contracts
+  const [rifContract, rifBalance] = useERC20({
+    provider,
+    address,
+    setErrorMessage,
+    artifact: rifArtifact,
+  });
+  const [voteTokenContract, voteTokenBalance, voteTotalSupply] = useERC20({
+    provider,
+    address,
+    setErrorMessage,
+    artifact: voteArtifact,
+  });
+  const governorContract = useContract({
+    provider,
+    artifact: governorArtifact,
+  });
+  const rrContract = useContract({ provider, artifact: rrArtifact });
+
+  const contextValue = {
     connect,
     provider,
     address,
@@ -62,7 +88,20 @@ const useEthers = () => {
     loading,
     setLoading,
     resetState,
+    // contracts
+    rifContract,
+    rifBalance,
+    voteTokenContract,
+    voteTokenBalance,
+    voteTotalSupply,
+    governorContract,
+    rrContract,
   };
-};
+  return (
+    <EthersContext.Provider value={contextValue}>
+      {children}
+    </EthersContext.Provider>
+  );
+}
 
-export default useEthers;
+export default EthersProvider;

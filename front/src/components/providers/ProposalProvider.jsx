@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import ProposalContext from '../contexts/proposalContext';
+import ProposalContext from '../../contexts/proposalContext';
 
 function ProposalProvider({ children }) {
   /* 
