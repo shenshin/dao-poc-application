@@ -1,38 +1,49 @@
 import { useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import Container from '../../styles/container';
 import Note from '../../styles/note';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
+  SC_UPDATE_FREQUENCY,
   RouteNames,
 } from '../../utils/constants';
 
 function AcquireRevenue() {
   const navigate = useNavigate();
-  const { address, rrContract, isActiveRr, setErrorMessage, setLoading } =
-    useContext(EthersContext);
+  const { address, rrContract, setErrorMessage, setLoading } =
+    useContext(RootstockContext);
 
+  const [isActiveRr, setIsActiveRr] = useState(false);
   const [revenueAmount, setRevenueAmount] = useState(0);
-  const [isAcquired, setIsAcquired] = useState(false);
+
   useEffect(() => {
-    (async () => {
-      if (isActiveRr) {
-        const revAmount = await rrContract.getRevenueAmount(address);
-        const revAcquired = await rrContract.revenueAquired();
-        setRevenueAmount(ethers.utils.parseEther(revAmount));
-        setIsAcquired(revAcquired);
-      } else {
-        setRevenueAmount(0);
-        setIsAcquired(false);
-      }
-    })();
-  }, [isActiveRr, rrContract, address]);
+    let interval;
+    if (rrContract) {
+      const queryRrContract = async () => {
+        const isActive = await rrContract.isActive();
+        if (isActive) {
+          const revAmount = await rrContract.getRevenueAmount(address);
+          setRevenueAmount(ethers.utils.formatEther(revAmount));
+        }
+        setIsActiveRr(isActive);
+      };
+      queryRrContract();
+      setInterval(queryRrContract, SC_UPDATE_FREQUENCY);
+    }
+    return () => clearInterval(interval);
+  }, [rrContract, address]);
+
+  const verifyParams = async () => {
+    // make sure a participant hasn't acquired his revenue yet
+    if (await rrContract.revenueAquired())
+      throw new Error('You have already acquired your revenue');
+  };
 
   const acqureRevenue = async () => {
     try {
-      if (isAcquired) throw new Error('You have already acquired your revenue');
+      await verifyParams();
       const txRequest = await rrContract.aquireRevenue();
       setLoading(`Sending tx ${txRequest.hash}`);
       await txRequest.wait();
@@ -47,28 +58,19 @@ function AcquireRevenue() {
   };
   return (
     <Container>
-      <Note>
-        <h4>Aquire revenue</h4>
-        {isActiveRr ? (
-          <>
-            {isAcquired ? (
-              <p>You have already acquired your revenue</p>
-            ) : (
-              <>
-                <p>You can acquire your revenue now!</p>
-                <p>{`Your revenue is ${revenueAmount}`}</p>
-              </>
-            )}
-            <p>Revenue redistribution is now active</p>
-          </>
-        ) : (
-          <p>No active revenue redistribution</p>
-        )}
-      </Note>
-      {isActiveRr && (
-        <button type="button" onClick={acqureRevenue}>
-          Acquire
-        </button>
+      {isActiveRr ? (
+        <>
+          <Note>
+            <h4>Acquire revenue</h4>
+            <p>You can acquire your revenue now!</p>
+            <p>{`Your revenue is ${revenueAmount} RBTC`}</p>
+          </Note>
+          <button type="button" onClick={acqureRevenue}>
+            Acquire
+          </button>
+        </>
+      ) : (
+        <p>No active revenue redistribution</p>
       )}
     </Container>
   );

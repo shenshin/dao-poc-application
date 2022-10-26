@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import ProposalContext from '../../contexts/proposalContext';
 import Container from '../../styles/container';
 import Note from '../../styles/note';
@@ -13,20 +13,15 @@ const secondsInMinute = 60;
 
 function CreateRrProposal() {
   const navigate = useNavigate();
-  const {
-    rrContract,
-    isActiveRr,
-    governorContract,
-    setErrorMessage,
-    setLoading,
-  } = useContext(EthersContext);
+  const { rrContract, governorContract, setErrorMessage, setLoading } =
+    useContext(RootstockContext);
 
   const { addProposal, proposals } = useContext(ProposalContext);
 
   // percent of treasury to distribute
   const [percent, setPercent] = useState(50);
   // RR duration, minutes
-  const [duration, setDuration] = useState(5);
+  const [duration, setDuration] = useState(15);
   // unique proposal description
   const [description, setDescription] = useState('RR proposal #1');
 
@@ -39,6 +34,9 @@ function CreateRrProposal() {
     // make sure proposal ID is unique
     if (proposals.some((proposal) => proposal.description === description))
       throw new Error('Proposal description should be unique');
+    // make sure there is no active redistribution running
+    if (await rrContract.isActive())
+      throw new Error('Revenue redistribution is currently running');
   };
 
   const createRRProposal = async () => {
@@ -71,63 +69,52 @@ function CreateRrProposal() {
   };
   return (
     <Container>
-      {isActiveRr ? (
-        <Note>
-          <h4>Revenue redistribution is already active</h4>
-          <p>
-            You will be able to create a new one after the current is finished
-          </p>
-        </Note>
-      ) : (
-        <>
-          <Note>
-            <h4>Revenue redistribution proposal creation</h4>
-            <p>Fill in the redistribution proposal parameters</p>
-          </Note>
-          <div>
-            <label htmlFor="percent">
-              Percent of the treasury to distribute &nbsp;
-              <input
-                value={percent}
-                type="number"
-                name="percent"
-                min={0}
-                max={100}
-                onChange={(e) => setPercent(e.target.value)}
-              />
-              &nbsp;%
-            </label>
-          </div>
-          <div>
-            <label htmlFor="duration">
-              Duration &nbsp;
-              <input
-                value={duration}
-                type="number"
-                name="duration"
-                min={1}
-                max={100}
-                onChange={(e) => setDuration(e.target.value)}
-              />
-              &nbsp;minutes
-            </label>
-          </div>
-          <div>
-            <label htmlFor="description">
-              Proposal description &nbsp;
-              <input
-                value={description}
-                type="text"
-                name="description"
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </label>
-          </div>
-          <button type="button" onClick={createRRProposal}>
-            Submit Proposal
-          </button>
-        </>
-      )}
+      <Note>
+        <h4>Revenue redistribution proposal creation</h4>
+        <p>Fill in the redistribution proposal parameters</p>
+      </Note>
+      <div>
+        <label htmlFor="percent">
+          Percent of the treasury to distribute &nbsp;
+          <input
+            value={percent}
+            type="number"
+            name="percent"
+            min={0}
+            max={100}
+            onChange={(e) => setPercent(e.target.value)}
+          />
+          &nbsp;%
+        </label>
+      </div>
+      <div>
+        <label htmlFor="duration">
+          Duration &nbsp;
+          <input
+            value={duration}
+            type="number"
+            name="duration"
+            min={1}
+            max={100}
+            onChange={(e) => setDuration(e.target.value)}
+          />
+          &nbsp;minutes
+        </label>
+      </div>
+      <div>
+        <label htmlFor="description">
+          Proposal description &nbsp;
+          <input
+            value={description}
+            type="text"
+            name="description"
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+      </div>
+      <button type="button" onClick={createRRProposal}>
+        Submit Proposal
+      </button>
     </Container>
   );
 }

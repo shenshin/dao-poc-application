@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import useContract from '../../hooks/useContract';
 import useERC20 from '../../hooks/useERC20';
 import {
@@ -14,7 +14,7 @@ import governorArtifact from '../../contracts/31/GovernorFT.json';
 import rrArtifact from '../../contracts/31/RevenueRedistributor.json';
 
 // inject ethers.js and all smart contracts to React context state
-function EthersProvider({ children }) {
+function RootstockProvider({ children }) {
   const [provider, setProvider] = useState(null);
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(null);
@@ -92,21 +92,6 @@ function EthersProvider({ children }) {
   });
   const rrContract = useContract({ provider, artifact: rrArtifact });
 
-  const [isActiveRr, setIsActiveRr] = useState(false);
-
-  useEffect(() => {
-    let interval;
-    if (rrContract) {
-      const queryRrContract = async () => {
-        const isActive = await rrContract.isActive();
-        setIsActiveRr(isActive);
-      };
-      queryRrContract();
-      setInterval(queryRrContract, SC_UPDATE_FREQUENCY);
-    }
-    return () => clearInterval(interval);
-  }, [rrContract, address]);
-
   const contextValue = {
     connect,
     provider,
@@ -124,13 +109,12 @@ function EthersProvider({ children }) {
     voteTotalSupply,
     governorContract,
     rrContract,
-    isActiveRr,
   };
   return (
-    <EthersContext.Provider value={contextValue}>
+    <RootstockContext.Provider value={contextValue}>
       {children}
-    </EthersContext.Provider>
+    </RootstockContext.Provider>
   );
 }
 
-export default EthersProvider;
+export default RootstockProvider;

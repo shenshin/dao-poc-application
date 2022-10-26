@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { ProposalState } from './constants';
 
 export function getDescriptionHash(description) {
   return ethers.utils.solidityKeccak256(['string'], [description]);
@@ -18,4 +19,19 @@ export function calculateProposalId({
       ),
     ),
   );
+}
+
+export async function validateProposalState(governorContract, proposal, state) {
+  let proposalState;
+  try {
+    const proposalId = calculateProposalId(proposal);
+    // if this tx rejects, it means proposal with this ID was not initiated yet
+    proposalState = await governorContract.state(proposalId);
+  } catch (error) {
+    throw new Error(`Proposal "${proposal.description}" does not exist`);
+  }
+  if (proposalState !== state) {
+    const optionName = Object.keys(ProposalState)[proposalState];
+    throw new Error(`Proposal "${proposal.description}" is ${optionName}`);
+  }
 }

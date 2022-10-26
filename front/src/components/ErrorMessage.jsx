@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import styled from 'styled-components';
-import EthersContext from '../contexts/ethersContext';
+import RootstockContext from '../contexts/rootstockContext';
 
 const Container = styled.div`
   display: flex;
@@ -15,7 +15,7 @@ const ErrorText = styled.span`
 `;
 
 function ErrorMessage() {
-  const { errorMessage, setErrorMessage } = useContext(EthersContext);
+  const { errorMessage, setErrorMessage } = useContext(RootstockContext);
   return (
     errorMessage && (
       <Container>

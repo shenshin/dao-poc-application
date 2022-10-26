@@ -1,9 +1,9 @@
 import { useContext } from 'react';
-import EthersContext from '../contexts/ethersContext';
+import RootstockContext from '../contexts/rootstockContext';
 import ErrorMessage from './ErrorMessage';
 
 function ConnectWallet() {
-  const { connect } = useContext(EthersContext);
+  const { connect } = useContext(RootstockContext);
   return (
     <div>
       <ErrorMessage />

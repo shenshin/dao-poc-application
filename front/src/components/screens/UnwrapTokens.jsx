@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   RouteNames,
@@ -17,7 +17,7 @@ function UnwrapTokens() {
     setLoading,
     voteTokenContract,
     voteTokenBalance,
-  } = useContext(EthersContext);
+  } = useContext(RootstockContext);
 
   // actual token balance / 10^18
   const [tokenAmount, setTokenAmount] = useState(0);

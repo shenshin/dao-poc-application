@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
-import EthersContext from './contexts/ethersContext';
+import RootstockContext from './contexts/rootstockContext';
 import { RouteNames } from './utils/constants';
 // components
 import ConnectWallet from './components/ConnectWallet';
@@ -16,7 +16,7 @@ import AcquireRevenue from './components/screens/AcquireRevenue';
 import UnwrapTokens from './components/screens/UnwrapTokens';
 
 function App() {
-  const { address } = useContext(EthersContext);
+  const { address } = useContext(RootstockContext);
   if (!address) {
     return (
       <Routes>

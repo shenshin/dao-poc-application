@@ -1,20 +1,24 @@
 import { useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import ProposalContext from '../../contexts/proposalContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   VoteOptions,
   RouteNames,
+  ProposalState,
 } from '../../utils/constants';
 import Container from '../../styles/container';
 import Note from '../../styles/note';
-import { calculateProposalId } from '../../utils/functions';
+import {
+  calculateProposalId,
+  validateProposalState,
+} from '../../utils/functions';
 
 function Voting() {
   const navigate = useNavigate();
-  const { governorContract, setErrorMessage, setLoading } =
-    useContext(EthersContext);
+  const { governorContract, address, setErrorMessage, setLoading } =
+    useContext(RootstockContext);
 
   const { proposals } = useContext(ProposalContext);
 
@@ -29,12 +33,27 @@ function Voting() {
     selectedVoteType.current = event.target.value;
   };
 
+  const validateParams = async (proposal, proposalId) => {
+    // make sure the participant has not voted yet
+    if (await governorContract.hasVoted(proposalId, address))
+      throw new Error('You have already voted');
+    // disallow every proposal state except active
+    await validateProposalState(
+      governorContract,
+      proposal,
+      ProposalState.Active,
+    );
+  };
+
   const vote = async () => {
     try {
       const proposal = proposals[selectedProposalIndex.current];
       const proposalId = calculateProposalId(proposal);
-      const voteType = selectedVoteType.current;
-      const tx = await governorContract.castVote(proposalId, voteType);
+      await validateParams(proposal, proposalId);
+      const tx = await governorContract.castVote(
+        proposalId,
+        selectedVoteType.current,
+      );
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
       navigate(RouteNames.executeProposal);

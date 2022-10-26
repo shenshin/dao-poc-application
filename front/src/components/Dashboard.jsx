@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import styled from 'styled-components';
-import EthersContext from '../contexts/ethersContext';
+import RootstockContext from '../contexts/rootstockContext';
 import ProposalContext from '../contexts/proposalContext';
 import useRbtcBalance from '../hooks/useRbtcBalance';
 
@@ -26,7 +26,7 @@ function Dashboard() {
     voteTokenBalance,
     voteTotalSupply,
     rrContract,
-  } = useContext(EthersContext);
+  } = useContext(RootstockContext);
 
   const { proposals } = useContext(ProposalContext);
 

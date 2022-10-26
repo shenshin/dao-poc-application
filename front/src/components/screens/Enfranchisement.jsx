@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import { BigNumber } from 'ethers';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   RouteNames,
@@ -17,7 +17,7 @@ function Enfranchisement() {
     rifContract,
     rifBalance,
     voteTokenContract,
-  } = useContext(EthersContext);
+  } = useContext(RootstockContext);
 
   // actual token balance / decimals
   const [tokenAmount, setTokenAmount] = useState(0);

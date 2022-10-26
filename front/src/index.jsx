@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import EthersProvider from './components/providers/EthersProvider';
+import RootstockProvider from './components/providers/RootstockProvider';
 import ProposalProvider from './components/providers/ProposalProvider';
 import GlobalStyles from './styles/global';
 
@@ -11,11 +11,11 @@ root.render(
   <React.StrictMode>
     <GlobalStyles />
     <BrowserRouter>
-      <EthersProvider>
+      <RootstockProvider>
         <ProposalProvider>
           <App />
         </ProposalProvider>
-      </EthersProvider>
+      </RootstockProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

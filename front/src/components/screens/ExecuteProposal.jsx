@@ -1,6 +1,6 @@
 import { useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import ProposalContext from '../../contexts/proposalContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
@@ -9,13 +9,16 @@ import {
 } from '../../utils/constants';
 import Container from '../../styles/container';
 import Note from '../../styles/note';
-import { calculateProposalId, getDescriptionHash } from '../../utils/functions';
+import {
+  validateProposalState,
+  getDescriptionHash,
+} from '../../utils/functions';
 
 function ExecuteProposal() {
   const navigate = useNavigate();
   const { governorContract, setErrorMessage, setLoading } =
-    useContext(EthersContext);
-  const { proposals } = useContext(ProposalContext);
+    useContext(RootstockContext);
+  const { proposals, removeProposal } = useContext(ProposalContext);
 
   const selectedProposalIndex = useRef(0);
 
@@ -23,25 +26,15 @@ function ExecuteProposal() {
     selectedProposalIndex.current = event.target.value;
   };
 
-  const validateProposalState = async (proposal) => {
-    let proposalState;
-    try {
-      const proposalId = calculateProposalId(proposal);
-      // if this tx rejects, it means proposal with this ID was not initiated yet
-      proposalState = await governorContract.state(proposalId);
-    } catch (error) {
-      throw new Error(`Proposal "${proposal.description}" doesn not exist`);
-    }
-    if (proposalState !== ProposalState.Succeeded) {
-      const optionName = Object.keys(ProposalState)[proposalState];
-      throw new Error(`Proposal "${proposal.description}" is ${optionName}`);
-    }
-  };
-
   const execute = async () => {
     try {
       const proposal = proposals[selectedProposalIndex.current];
-      await validateProposalState(proposal);
+      // disallow every proposal state except succeeded
+      await validateProposalState(
+        governorContract,
+        proposal,
+        ProposalState.Succeeded,
+      );
       const { addresses, amounts, calldatas, description } = proposal;
       const tx = await governorContract.execute(
         addresses,
@@ -51,6 +44,7 @@ function ExecuteProposal() {
       );
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
+      removeProposal(proposal);
       navigate(RouteNames.acquireRevenue);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {
