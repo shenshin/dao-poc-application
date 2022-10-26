@@ -1,8 +1,8 @@
 import { useContext } from 'react';
-import EthersContext from '../contexts/ethersContext';
+import RootstockContext from '../contexts/rootstockContext';
 
 function LoadingMessage() {
-  const { loading } = useContext(EthersContext);
+  const { loading } = useContext(RootstockContext);
   return (
     loading && (
       <div>

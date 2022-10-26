@@ -16,10 +16,10 @@ function ProposalProvider({ children }) {
     setProposals((existingPoposals) => [proposal, ...existingPoposals]);
   };
 
-  const removeProposal = (description) => {
+  const removeProposal = (proposal) => {
     setProposals((existingPoposals) =>
       existingPoposals.filter(
-        (proposal) => proposal.description !== description,
+        (propos) => propos.description !== proposal.description,
       ),
     );
   };

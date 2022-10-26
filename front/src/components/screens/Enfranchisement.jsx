@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
+import { BigNumber } from 'ethers';
 import { useNavigate } from 'react-router-dom';
-import { ethers } from 'ethers';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   RouteNames,
@@ -17,30 +17,30 @@ function Enfranchisement() {
     rifContract,
     rifBalance,
     voteTokenContract,
-  } = useContext(EthersContext);
+  } = useContext(RootstockContext);
 
-  // actual token balance / 10^18
+  // actual token balance / decimals
   const [tokenAmount, setTokenAmount] = useState(0);
 
   const navigate = useNavigate();
 
   const wrapTokens = async () => {
     try {
-      const tokensToExchange = ethers.BigNumber.from(tokenAmount).mul(
-        10n ** 18n,
+      const decimals = await rifContract.decimals();
+      const tokensToWrap = BigNumber.from(tokenAmount).mul(
+        BigNumber.from(10).pow(decimals),
       );
-      setErrorMessage(null);
       // tx 1: rif -> rifVote approval
       const approveTx = await rifContract.approve(
         voteTokenContract.address,
-        tokensToExchange,
+        tokensToWrap,
       );
       setLoading(`Sending tx ${approveTx.hash}`);
       await approveTx.wait();
       // tx 2: mint rifVote tokens
       const depositTx = await voteTokenContract.depositFor(
         address,
-        tokensToExchange,
+        tokensToWrap,
       );
       setLoading(`Sending tx ${depositTx.hash}`);
       await depositTx.wait();

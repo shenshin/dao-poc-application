@@ -20,7 +20,7 @@ contract GovernorFT is
         Governor('GovernorFT')
         GovernorSettings(
             0, /* voting delay, blocks */
-            18, /* voting period, blocks */
+            100, /* voting period, blocks */
             1 /* proposal threshold, votes */
         )
         GovernorVotes(_token)

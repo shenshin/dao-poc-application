@@ -193,7 +193,6 @@ describe('Governance - Revenue Redistribution - Successful', () => {
   });
 
   describe('Revenue redistribution', () => {
-    const rdId = 1;
     const snapshotId = 1;
     let revenues;
 
@@ -208,6 +207,7 @@ describe('Governance - Revenue Redistribution - Successful', () => {
     });
 
     describe('Proposal execution', () => {
+      const rdId = 1;
       // tx 6: start new redistribution
       it('should initiate the redistribution', async () => {
         await expect(governor.execute(...proposal, proposalDescriptionHash))
@@ -238,12 +238,11 @@ describe('Governance - Revenue Redistribution - Successful', () => {
 
     describe('Parameters', () => {
       it('the newly created RD should be active', async () => {
-        expect(await rr.isActiveRedistribution(rdId - 1)).to.be.false;
-        expect(await rr.isActiveRedistribution(rdId)).to.be.true;
-        expect(await rr.isActiveRedistribution(rdId + 1)).to.be.false;
+        expect(await rr.isActive()).to.be.true;
       });
 
       it('the active redistribution parameters should be set correctly', async () => {
+        const rdId = await rr.getCurrentId();
         const rdParams = await rr.redistributions(rdId);
         expect(rdParams.amount).to.equal(redistributionAmount);
         expect(rdParams.voteTokenSnapshot).to.equal(snapshotId);
@@ -268,6 +267,15 @@ describe('Governance - Revenue Redistribution - Successful', () => {
             expect(rr.connect(voter).aquireRevenue())
               .to.emit(rr, 'RevenueAcquired')
               .withArgs(voter.address, revenues[i]),
+          ),
+        );
+      });
+
+      it('the revenue should be acquires by the voters', async () => {
+        await Promise.all(
+          voters.map(
+            async (voter) =>
+              expect(await rr.connect(voter).revenueAquired()).to.be.true,
           ),
         );
       });

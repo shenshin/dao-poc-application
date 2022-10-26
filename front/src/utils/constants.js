@@ -1,7 +1,6 @@
 export const ERROR_CODE_TX_REJECTED_BY_USER = 'ACTION_REJECTED';
 export const SC_UPDATE_FREQUENCY = 5000; // 5 seconds
-export const RSK_TESTNET_NETWORK_ID = 31;
-export const RIF_DECIMALS = 10n ** 18n;
+export const RskNetworkIds = [31, 33];
 export const VoteOptions = ['Against', 'For', 'Abstain'];
 export const ProposalState = {
   Pending: 0,

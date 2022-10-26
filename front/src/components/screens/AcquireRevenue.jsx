@@ -1,6 +1,7 @@
-import React, { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
+import { ethers } from 'ethers';
 import { useNavigate } from 'react-router-dom';
-import EthersContext from '../../contexts/ethersContext';
+import RootstockContext from '../../contexts/rootstockContext';
 import Container from '../../styles/container';
 import Note from '../../styles/note';
 import {
@@ -10,10 +11,30 @@ import {
 
 function AcquireRevenue() {
   const navigate = useNavigate();
-  const { rrContract, setErrorMessage, setLoading } = useContext(EthersContext);
+  const { address, rrContract, setErrorMessage, setLoading } =
+    useContext(RootstockContext);
+
+  const [isActiveRr, setIsActiveRr] = useState(true);
+  const [revenueAmount, setRevenueAmount] = useState(0);
+  const [hasAcquired, setHasAcquired] = useState(false);
+
+  useEffect(() => {
+    if (rrContract) {
+      const queryRrContract = async () => {
+        const isActive = await rrContract.isActive();
+        if (isActive) {
+          const revAmount = await rrContract.getRevenueAmount(address);
+          setRevenueAmount(ethers.utils.formatEther(revAmount));
+          setHasAcquired(await rrContract.revenueAquired());
+        }
+        setIsActiveRr(isActive);
+      };
+      queryRrContract();
+    }
+  }, [rrContract, address]);
+
   const acqureRevenue = async () => {
     try {
-      setErrorMessage(null);
       const txRequest = await rrContract.aquireRevenue();
       setLoading(`Sending tx ${txRequest.hash}`);
       await txRequest.wait();
@@ -28,13 +49,24 @@ function AcquireRevenue() {
   };
   return (
     <Container>
-      <Note>
-        <h4>Aquire revenue</h4>
-        <p>Revenue redistribution should be initiated</p>
-      </Note>
-      <button type="button" onClick={acqureRevenue}>
-        Acquire
-      </button>
+      {isActiveRr ? (
+        <>
+          <Note>
+            <h4>Acquire revenue</h4>
+            {!hasAcquired && <p>You can acquire your revenue now!</p>}
+            <p>{`Your revenue is ${revenueAmount} RBTC`}</p>
+          </Note>
+          {hasAcquired ? (
+            <p>You have already acquired your revenue</p>
+          ) : (
+            <button type="button" onClick={acqureRevenue}>
+              Acquire
+            </button>
+          )}
+        </>
+      ) : (
+        <p>No active revenue redistribution</p>
+      )}
     </Container>
   );
 }
