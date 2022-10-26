@@ -8,6 +8,7 @@ import {
   ERROR_CODE_TX_REJECTED_BY_USER,
   RouteNames,
 } from '../../utils/constants';
+import { verifyProposalUniqueness } from '../../utils/functions';
 
 const secondsInMinute = 60;
 
@@ -32,7 +33,7 @@ function CreateRrProposal() {
       throw new Error('Incorrect duration value');
     if (!description) throw new Error('Specify a proposal description');
     // make sure proposal ID is unique
-    if (proposals.some((proposal) => proposal.description === description))
+    if (proposals.some((propos) => propos.description === description))
       throw new Error('Proposal description should be unique');
     // make sure there is no active redistribution running
     if (await rrContract.isActive())
@@ -49,6 +50,8 @@ function CreateRrProposal() {
       const addresses = [rrContract.address];
       const amounts = [0];
       const calldatas = [initiateRrCalldata];
+      const proposal = { addresses, amounts, calldatas, description };
+      await verifyProposalUniqueness(governorContract, proposal);
       const tx = await governorContract.propose(
         addresses,
         amounts,
@@ -57,7 +60,7 @@ function CreateRrProposal() {
       );
       setLoading(`Sending tx ${tx.hash}`);
       await tx.wait();
-      addProposal({ addresses, amounts, calldatas, description });
+      addProposal(proposal);
       navigate(RouteNames.voteForProposal);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {

@@ -35,3 +35,19 @@ export async function validateProposalState(governorContract, proposal, state) {
     throw new Error(`Proposal "${proposal.description}" is ${optionName}`);
   }
 }
+
+export async function verifyProposalUniqueness(governor, proposal) {
+  // make sure there was no proposal with the same id before
+  const proposalId = calculateProposalId(proposal);
+  try {
+    // I need this tx to be reverted otherwise I want to throw
+    await governor.state(proposalId);
+  } catch (error) {
+    // successfully return on error
+    return;
+  }
+  // throw if no tx rejection
+  throw new Error(
+    'There was already a proposal with the same parameters. Change the description',
+  );
+}

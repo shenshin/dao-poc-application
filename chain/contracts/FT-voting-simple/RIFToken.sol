@@ -11,6 +11,6 @@ contract RIFToken is ERC20, Ownable {
     }
 
     function decimals() public pure override(ERC20) returns(uint8) {
-        return 0;
+        return 18;
     }
 }

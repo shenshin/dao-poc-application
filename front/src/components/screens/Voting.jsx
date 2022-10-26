@@ -55,7 +55,11 @@ function Voting() {
         selectedVoteType.current,
       );
       setLoading(`Sending tx ${tx.hash}`);
-      await tx.wait();
+      try {
+        await tx.wait();
+      } catch (error) {
+        throw new Error('The voting ended before your vote was counted');
+      }
       navigate(RouteNames.executeProposal);
     } catch (error) {
       if (error.code !== ERROR_CODE_TX_REJECTED_BY_USER) {

@@ -4,8 +4,8 @@ import useContract from './useContract';
 import { SC_UPDATE_FREQUENCY } from '../utils/constants';
 
 const useERC20 = ({ setErrorMessage, address, provider, artifact }) => {
-  const [balance, setBalance] = useState(0);
-  const [supply, setSupply] = useState(0);
+  const [balance, setBalance] = useState('0');
+  const [supply, setSupply] = useState('0');
   const contract = useContract({ artifact, provider });
 
   // retrieve token balances every few seconds
@@ -18,10 +18,10 @@ const useERC20 = ({ setErrorMessage, address, provider, artifact }) => {
           const denominator = BigNumber.from(10).pow(decimals);
           const bal = await contract.balanceOf(address);
           const sup = await contract.totalSupply();
-          setBalance(bal.div(denominator).toNumber());
-          setSupply(sup.div(denominator).toNumber());
+          setBalance(bal.div(denominator).toString());
+          setSupply(sup.div(denominator).toString());
         } catch (error) {
-          setErrorMessage(error.message);
+          setErrorMessage('Failed accessing ERC20 token');
         }
       };
       getBalance();

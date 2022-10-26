@@ -12,7 +12,7 @@ function useRbtcBalance({ address, provider, setErrorMessage }) {
           const weiBalance = await provider.getBalance(address);
           setBalance(ethers.utils.formatEther(weiBalance));
         } catch (error) {
-          setErrorMessage(error.message);
+          setErrorMessage('Failed getting RBTC balance');
         }
       };
       getBalance();

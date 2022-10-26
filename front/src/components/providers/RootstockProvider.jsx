@@ -3,15 +3,8 @@ import { ethers } from 'ethers';
 import RootstockContext from '../../contexts/rootstockContext';
 import useContract from '../../hooks/useContract';
 import useERC20 from '../../hooks/useERC20';
-import {
-  RSK_TESTNET_NETWORK_ID,
-  SC_UPDATE_FREQUENCY,
-} from '../../utils/constants';
-// smart contract artifacts
-import rifArtifact from '../../contracts/31/RIFToken.json';
-import voteArtifact from '../../contracts/31/RIFVoteToken.json';
-import governorArtifact from '../../contracts/31/GovernorFT.json';
-import rrArtifact from '../../contracts/31/RevenueRedistributor.json';
+import { RskNetworkIds, SC_UPDATE_FREQUENCY } from '../../utils/constants';
+import scArtifacts from '../../contracts/scArtifacts';
 
 // inject ethers.js and all smart contracts to React context state
 function RootstockProvider({ children }) {
@@ -19,6 +12,7 @@ function RootstockProvider({ children }) {
   const [address, setAddress] = useState(null);
   const [loading, setLoading] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [networkId, setNetworkId] = useState(31);
 
   useEffect(() => {
     let timeout;
@@ -39,11 +33,12 @@ function RootstockProvider({ children }) {
 
   const checkNetwork = async (ethersProvider) => {
     const { chainId } = await ethersProvider.getNetwork();
-    if (chainId !== RSK_TESTNET_NETWORK_ID) {
+    if (!RskNetworkIds.includes(Number(chainId))) {
       resetState();
-      setErrorMessage('Please connect to RSK Testnet');
+      setErrorMessage('Please connect to RSK');
       return false;
     }
+    setNetworkId(Number(chainId));
     return true;
   };
 
@@ -78,19 +73,22 @@ function RootstockProvider({ children }) {
     provider,
     address,
     setErrorMessage,
-    artifact: rifArtifact,
+    artifact: scArtifacts?.[networkId]?.rif,
   });
   const [voteTokenContract, voteTokenBalance, voteTotalSupply] = useERC20({
     provider,
     address,
     setErrorMessage,
-    artifact: voteArtifact,
+    artifact: scArtifacts?.[networkId]?.vote,
   });
   const governorContract = useContract({
     provider,
-    artifact: governorArtifact,
+    artifact: scArtifacts?.[networkId]?.governor,
   });
-  const rrContract = useContract({ provider, artifact: rrArtifact });
+  const rrContract = useContract({
+    provider,
+    artifact: scArtifacts?.[networkId]?.rr,
+  });
 
   const contextValue = {
     connect,
